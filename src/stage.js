@@ -20,7 +20,7 @@ export class Connected extends Tile {
         this.cables_underneath = cables_underneath;
     }
 
-    get_textures() {
+    get_parts_textures() {
         let res = [];
 
         let bit = 1;
@@ -30,6 +30,12 @@ export class Connected extends Tile {
             }
             bit <<= 1;
         }
+
+        return res;
+    }
+
+    get_textures() {
+        let res = this.get_parts_textures();
 
         if (this.cables_underneath) {
             res.push(this.texture_name);
