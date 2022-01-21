@@ -1,67 +1,15 @@
 import {TILE_SIZE} from "./renderer.js";
 // import {Ant} from "./ant.js";
 
-export class Tile {
-    constructor(texture_name) {
-        this.texture_name = texture_name;
-    }
-
-    get_textures() {
-        return [this.texture_name];
-    }
-}
-
-export class Connected extends Tile {
-    constructor(texture_name, parts, connections, cables_underneath = true) {
-        super(texture_name);
-
-        this.parts = parts;
-        this.connections = connections;
-        this.cables_underneath = cables_underneath;
-    }
-
-    get_parts_textures() {
-        let res = [];
-
-        let bit = 1;
-        for (let part of this.parts) {
-            if (this.connections & bit) {
-                res.push(part);
-            }
-            bit <<= 1;
-        }
-
-        return res;
-    }
-
-    get_textures() {
-        let res = this.get_parts_textures();
-
-        if (this.cables_underneath) {
-            res.push(this.texture_name);
-        } else {
-            res.unshift(this.texture_name);
-        }
-
-        return res;
-    }
-
-    static from(template, connections) {
-        return new Connected(template.texture_name, template.parts, connections, template.cables_underneath);
-    }
-}
-
-export const TILE_VOID = new Tile(2, 3);
-
 export class Grid {
     constructor(width, height) {
         this.width = width;
         this.height = height;
-        this.tiles = new Array(width * height).fill(null);
+        this.tiles = new Array(width * height).fill(null).map(_ => []);
     }
 
     get(x, y) {
-        if (validCoordinates(x, y, this.width, this.height)) {
+        if (valid_coordinates(x, y, this.width, this.height)) {
             return this.tiles[x + y * this.width] ?? [];
         } else {
             return [];
@@ -69,7 +17,7 @@ export class Grid {
     }
 
     set(x, y, tile) {
-        if (validCoordinates(x, y, this.width, this.height)) {
+        if (valid_coordinates(x, y, this.width, this.height)) {
             this.tiles[x + y * this.width] = tile;
             return true;
         } else {
@@ -90,6 +38,9 @@ export class Stage {
         this.cy = 0;
         this.zoom = 2;
         this.tilemap = tilemap;
+
+        this.networks = [];
+        this.player_index = 0;
     }
 
     draw(ctx, width, height) {
@@ -109,17 +60,64 @@ export class Stage {
                 }
             }
 
+            let index = 0;
             for (let ant of this.ants) {
                 if (ant.y === y) {
                     let vx = ant.x * tile_size - this.width * tile_size / 2 + this.cx + width / 2;
-                    ant.draw(ctx, this.tilemap, vx, vy, tile_size);
+                    ant.draw(ctx, this.tilemap, vx, vy, tile_size, index === this.player_index);
+                }
+                index++;
+            }
+        }
+    }
+
+    update() {
+        for (let y = 0; y < this.height; y++) {
+            for (let x = 0; x < this.width; x++) {
+                let stack = this.tiles.get(x, y);
+                let index = 0;
+                for (let tile of stack) {
+                    tile.update(this, x, y, index);
+                    index++;
                 }
             }
+        }
+
+        for (let network of this.networks) {
+            network.update();
+        }
+    }
+
+    is_passable(x, y) {
+        if (!valid_coordinates(x, y, this.width, this.height)) return false;
+
+        let passable = false;
+        for (let tile of this.tiles.get(x, y)) {
+            passable = tile.is_passable(passable);
+        }
+
+        return passable;
+    }
+
+    current_ant() {
+        return this.ants[this.player_index];
+    }
+
+    swap_ant() {
+        let current_ant = this.ants[this.player_index];
+
+        function distance(ant) {
+            return Math.abs(ant.x - current_ant.x) + Math.abs(ant.y - current_ant.y);
+        }
+
+        let closest_ant = [...this.ants.entries()].filter(([i, _]) => i != this.player_index).sort(([_ia, a], [_ib, b]) => distance(a) - distance(b));
+        if (closest_ant.length) {
+            this.player_index = closest_ant[0][0];
         }
     }
 }
 
-function validCoordinates(x, y, width, height) {
+export function valid_coordinates(x, y, width, height) {
     return (
         Number.isInteger(x) && Number.isInteger(y)
         && x >= 0 && x < width
