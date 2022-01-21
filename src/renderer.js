@@ -7,9 +7,45 @@ export class CanvasManager {
         this.ctx.imageSmoothingEnabled = false;
         window.addEventListener("resize", this.resize.bind(this));
         this.resize();
-        this.scheduledDraw = false;
+        this.scheduled_draw = false;
+
+        this._animations = true;
+        this.windowblurred = false;
+
+        window.addEventListener("blur", () => {
+            this.windowblurred = true;
+        });
+
+        window.addEventListener("focus", () => {
+            this.windowblurred = false;
+        });
+
+        // Works like a mutex:
+        // push_update() is equivalent to P(mutex) and pop_update() is equivalent to V(mutex)
+        // updates contains an array of functions: the first element is the update that just happened and that is currently being played on screen
+        // The other elements are updates that have been queued.
+        // Before the update is played on the screen, it is first applied (the function is called), and its result is stored in its place
+        // Once the animation is finished, the cleanup function (returned by the update function) is called, if any, and the process repeats
+        //
+        // This can be schematized as:
+        // In CanvasManager::push_update():
+        //      P(mutex)
+        //      update()
+        // In CanvasManager::pop_update():
+        //      V(mutex)
+        //      cleanup()
+        this.updates = [];
 
         this.currentDrawMethod = (ctx, width, height, manager) => {};
+    }
+
+    get animations() {
+        return !this.windowblurred && this._animations;
+    }
+
+    set animations(value) {
+        this._animations = value;
+        return !this.windowblurred && this._animations;
     }
 
     resize() {
@@ -27,11 +63,35 @@ export class CanvasManager {
         this.scheduleDraw();
     }
 
+    pop_update() {
+        if (this.updates.length > 0) {
+            if (typeof this.updates[0] === "function") this.updates[0]();
+            this.updates.shift();
+            if (this.updates.length > 0) {
+                this.updates[0] = this.updates[0]();
+            }
+        }
+    }
+
+    push_update(update) {
+        if (!this.animations) {
+            let cb = update() || (() => {});
+            cb();
+            return;
+        }
+
+        if (this.updates.length === 0 || !this.animations) {
+            this.updates.push(update());
+        } else {
+            this.updates.push(update);
+        }
+    }
+
     scheduleDraw() {
-        if (!this.scheduledDraw) {
-            this.scheduledDraw = true;
+        if (!this.scheduled_draw) {
+            this.scheduled_draw = true;
             window.requestAnimationFrame(() => {
-                this.scheduledDraw = false;
+                this.scheduled_draw = false;
                 this.draw();
             });
         }

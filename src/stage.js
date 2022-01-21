@@ -1,6 +1,8 @@
 import {TILE_SIZE} from "./renderer.js";
 // import {Ant} from "./ant.js";
 
+const ANIMATION_LENGTH = 250;
+
 export class Grid {
     constructor(width, height) {
         this.width = width;
@@ -41,9 +43,33 @@ export class Stage {
 
         this.networks = [];
         this.player_index = 0;
+        this.animation = 0.0;
+        this.animation_stress = 1.0;
+        this.last_tick = Date.now();
     }
 
-    draw(ctx, width, height) {
+    draw(ctx, width, height, manager) {
+        let dt = Date.now() - this.last_tick;
+        this.last_tick += dt;
+
+        // TODO: make this dt-independent (with a o(dt^2) margin)
+        let n_updates = Math.max(manager.updates.length, 1);
+        if (n_updates > this.animation_stress) {
+            this.animation_stress = (n_updates + this.animation_stress * 3) / 4.0;
+        } else {
+            this.animation_stress = (n_updates + this.animation_stress * 15) / 16.0;
+        }
+
+        if (manager.updates.length > 0) {
+            this.animation += dt * Math.pow(this.animation_stress, 2) / ANIMATION_LENGTH;
+            if (this.animation >= 1.0) {
+                this.animation %= 1.0;
+                manager.pop_update();
+            }
+        }
+
+        let animation = manager.updates.length > 0 ? ease_function(this.animation) : 0.0;
+
         ctx.fillStyle = "#080808";
         ctx.fillRect(0, 0, width, height);
         let tile_size = TILE_SIZE * Math.ceil(Math.pow(2, this.zoom));
@@ -55,19 +81,19 @@ export class Stage {
                 let stack = this.tiles.get(x, y);
                 for (let tile of stack) {
                     for (let texture of tile.get_textures()) {
-                        this.tilemap.draw(ctx, texture, vx, vy, tile_size);
+                        this.tilemap.draw(ctx, texture, vx, vy, tile_size, animation);
                     }
                 }
             }
+        }
 
-            let index = 0;
-            for (let ant of this.ants) {
-                if (ant.y === y) {
-                    let vx = ant.x * tile_size - this.width * tile_size / 2 + this.cx + width / 2;
-                    ant.draw(ctx, this.tilemap, vx, vy, tile_size, index === this.player_index);
-                }
-                index++;
-            }
+        for (let index = 0; index < this.ants.length; index++) {
+            let ant = this.ants[index];
+
+            let vy = ant.y * tile_size - this.height * tile_size / 2 + this.cy + height / 2;
+            let vx = ant.x * tile_size - this.width * tile_size / 2 + this.cx + width / 2;
+
+            ant.draw(ctx, this.tilemap, vx, vy, tile_size, index === this.player_index, animation);
         }
     }
 
@@ -123,4 +149,11 @@ export function valid_coordinates(x, y, width, height) {
         && x >= 0 && x < width
         && y >= 0 && y < height
     );
+}
+
+export function ease_function(x) {
+    const ALPHA = 1.5;
+    let xa = Math.pow(x, ALPHA);
+    let x2a = Math.pow(1.0 - x, ALPHA);
+    return xa / (xa + x2a);
 }

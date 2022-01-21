@@ -68,35 +68,40 @@ stage.ants.push(new Ant(4, 1, stage));
 let network = Network.from(stage, 4, 6, 1);
 stage.networks.push(network);
 
-let update_scheduled = false;
-function update() {
-    stage.update();
-    manager.scheduleDraw();
-
-    if (!update_scheduled) {
-        setTimeout(() => {
-            update();
-            update_scheduled = false;
-        }, 1000);
-        update_scheduled = true;
+let update_timeout = null;
+function scheduleUpdate() {
+    if (update_timeout) {
+        clearTimeout(update_timeout);
     }
+
+    update_timeout = setTimeout(() => {
+        update_timeout = null;
+        update();
+    }, 1000);
+}
+
+function update(beforeupdate = () => {}) {
+    manager.push_update(() => {
+        let cleanup = beforeupdate();
+        stage.update();
+        manager.scheduleDraw();
+        return cleanup;
+    });
+
+    scheduleUpdate();
 }
 
 window.addEventListener("keydown", (event) => {
     let player = stage.current_ant();
 
     if (event.key === "ArrowUp") {
-        player.move(0, -1);
-        update();
+        update(() => player.move(0, -1));
     } else if (event.key === "ArrowDown") {
-        player.move(0, 1);
-        update();
+        update(() => player.move(0, 1));
     } else if (event.key === "ArrowLeft") {
-        player.move(-1, 0);
-        update();
+        update(() => player.move(-1, 0));
     } else if (event.key === "ArrowRight") {
-        player.move(1, 0);
-        update();
+        update(() => player.move(1, 0));
     } else if (event.key === " ") {
         stage.swap_ant();
     }
