@@ -65,6 +65,11 @@ let button = tile("button_blue", 0b0001);
 place(4, 6, button);
 place(4, 7, tile("edge"));
 
+place(3, 2, tile("spike"));
+place(3, 3, tile("ground"));
+place(4, 2, tile("spike", true));
+place(4, 3, tile("ground"));
+
 stage.ants.push(new Ant(1, 1, stage));
 stage.ants.push(new Ant(3, 1, stage));
 stage.ants.push(new Ant(4, 1, stage));

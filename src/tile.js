@@ -123,6 +123,31 @@ export class Door extends Connected {
     }
 }
 
+export class Spike extends Tile {
+    constructor(jammed = false) {
+        super("spike", PASSABLE_TRUE);
+
+        this.jammed = jammed;
+    }
+
+    get_textures(animation) {
+        let res = ["spike"];
+        if (animation >= 0.5) animation = 1.0 - animation;
+        animation *= 2.0;
+
+        let step = Math.ceil(animation * 4 - 2);
+        if (this.jammed) step = Math.min(step, 0);
+
+        if (step >= 0) {
+            res.push("spike_" + step);
+        }
+
+        if (this.jammed) res.push("spike_jam");
+
+        return res;
+    }
+}
+
 export function register_tile_textures(tilemap) {
     tilemap.add_texture("wall", {
         x: 0, y: 0,
@@ -135,11 +160,11 @@ export function register_tile_textures(tilemap) {
 
     for (let dy = 0; dy <= 1; dy++) {
         let suffix = dy === 0 ? "" : "_on";
-        tilemap.add_texture("cable_blue" + suffix, {x: 2, y: 5 + dy});
-        tilemap.add_texture("cable_blue_up" + suffix, {x: 3, y: 5 + dy});
-        tilemap.add_texture("cable_blue_right" + suffix, {x: 4, y: 5 + dy});
-        tilemap.add_texture("cable_blue_down" + suffix, {x: 5, y: 5 + dy});
-        tilemap.add_texture("cable_blue_left" + suffix, {x: 6, y: 5 + dy});
+        tilemap.add_texture("cable_blue" + suffix, {x: 0, y: 14 + dy});
+        tilemap.add_texture("cable_blue_up" + suffix, {x: 1, y: 14 + dy});
+        tilemap.add_texture("cable_blue_right" + suffix, {x: 2, y: 14 + dy});
+        tilemap.add_texture("cable_blue_down" + suffix, {x: 3, y: 14 + dy});
+        tilemap.add_texture("cable_blue_left" + suffix, {x: 4, y: 14 + dy});
     }
 
     tilemap.add_texture("button_up", {x: 0, y: 5});
@@ -147,6 +172,12 @@ export function register_tile_textures(tilemap) {
 
     tilemap.add_texture("door_open", {x: 0, y: 3});
     tilemap.add_texture("door_closed", {x: 1, y: 3});
+
+    tilemap.add_texture("spike", {x: 2, y: 5});
+    tilemap.add_texture("spike_jam", {x: 6, y: 5});
+    for (let n = 0; n < 3; n++) {
+        tilemap.add_texture("spike_" + n, {x: 3 + n, y: 5});
+    }
 }
 
 export const CABLE_BLUE = [
@@ -184,6 +215,7 @@ tile_component("button_blue", Button, CABLE_BLUE);
 tile_component("door_blue", Door, CABLE_BLUE);
 
 TILES.set("cable_blue", (connections) => Connected.from(TILE_CABLE_BLUE, connections));
+TILES.set("spike", (jammed = false) => new Spike(jammed));
 
 export default function tile(name, ...data) {
     if (TILES.has(name)) {

@@ -52,7 +52,7 @@ export class Hud {
         for (let y = 0; y < this.height; y++) {
             for (let x = 0; x < this.width; x++) {
                 let [vx, vy] = get_visual_pos(x, y);
-                let hovered = mouse_x >= vx && mouse_y >= vy && mouse_x <= vx + tile_size && mouse_y <= vy + tile_size;
+                let hovered = mouse_x >= vx && mouse_y >= vy && mouse_x < vx + tile_size && mouse_y < vy + tile_size;
                 let [texture, cb, state, text] = this.components[x + y * this.width];
 
                 if (hovered && text.length) {

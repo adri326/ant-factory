@@ -121,7 +121,7 @@ export class Stage {
 
                 let stack = this.tiles.get(x, y);
                 for (let tile of stack) {
-                    for (let texture of tile.get_textures()) {
+                    for (let texture of tile.get_textures(animation)) {
                         this.tilemap.draw(ctx, texture, vx, vy, tile_size, animation);
                     }
                 }
