@@ -1,8 +1,9 @@
 import {CanvasManager, Tilemap} from "./renderer.js";
-import {Stage} from "./stage.js";
+import {Stage, PHEROMONE_HUD} from "./stage.js";
 import tile from "./tile.js";
 import {Ant, register_ant_textures} from "./ant.js";
 import {Network} from "./network.js";
+import {Pheromone, register_pheromone_textures} from "./pheromone.js";
 
 const manager = new CanvasManager(document.getElementById("canvas"));
 window.manager = manager;
@@ -12,6 +13,7 @@ window.tilemap = tilemap;
 
 register_ant_textures(tilemap);
 tile.register_tile_textures(tilemap);
+register_pheromone_textures(tilemap);
 
 const stage = new Stage(tilemap, 8, 8);
 window.stage = stage;
@@ -65,6 +67,14 @@ stage.ants.push(new Ant(1, 1, stage));
 stage.ants.push(new Ant(3, 1, stage));
 stage.ants.push(new Ant(4, 1, stage));
 
+stage.pheromone.get(2, 1).direction = 2;
+stage.pheromone.get(2, 2).direction = 2;
+stage.pheromone.get(2, 3).direction = 2;
+stage.pheromone.get(2, 4).direction = 1;
+stage.pheromone.get(3, 4).direction = 1;
+stage.pheromone.get(4, 4).direction = 2;
+stage.pheromone.get(4, 5).direction = 2;
+
 let network = Network.from(stage, 4, 6, 1);
 stage.networks.push(network);
 
@@ -104,6 +114,8 @@ window.addEventListener("keydown", (event) => {
         update(() => player.move(1, 0));
     } else if (event.key === " ") {
         stage.swap_ant();
+    } else if (event.key === "p") {
+        stage.toggle_hud(PHEROMONE_HUD);
     }
 });
 

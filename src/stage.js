@@ -1,7 +1,10 @@
 import {TILE_SIZE} from "./renderer.js";
 // import {Ant} from "./ant.js";
+import {Pheromone} from "./pheromone.js";
 
 const ANIMATION_LENGTH = 250;
+export const NO_HUD = 0;
+export const PHEROMONE_HUD = 1;
 
 export class Grid {
     constructor(width, height) {
@@ -28,6 +31,31 @@ export class Grid {
     }
 }
 
+export class PheromoneGrid {
+    constructor(width, height) {
+        this.width = width;
+        this.height = height;
+        this.tiles = new Array(width * height).fill(null).map(_ => new Pheromone());
+    }
+
+    get(x, y) {
+        if (valid_coordinates(x, y, this.width, this.height)) {
+            return this.tiles[x + y * this.width];
+        } else {
+            return null;
+        }
+    }
+
+    set(x, y, pheromone) {
+        if (valid_coordinates(x, y, this.width, this.height)) {
+            this.tiles[x + y * this.width] = pheromone;
+            return true;
+        } else {
+            return false;
+        }
+    }
+}
+
 export class Stage {
     constructor(tilemap, width, height) {
         this.tiles = new Grid(width, height);
@@ -46,6 +74,10 @@ export class Stage {
         this.animation = 0.0;
         this.animation_stress = 1.0;
         this.last_tick = Date.now();
+
+        this.pheromone = new PheromoneGrid(width, height);
+
+        this.hud = NO_HUD;
     }
 
     draw(ctx, width, height, manager) {
@@ -73,10 +105,19 @@ export class Stage {
         ctx.fillStyle = "#080808";
         ctx.fillRect(0, 0, width, height);
         let tile_size = TILE_SIZE * Math.ceil(Math.pow(2, this.zoom));
+
+        const get_vx = (x) => {
+            return x * tile_size - this.width * tile_size / 2 + this.cx + width / 2;;
+        };
+
+        const get_vy = (y) => {
+            return y * tile_size - this.height * tile_size / 2 + this.cy + height / 2;
+        };
+
         for (let y = 0; y < this.height; y++) {
-            let vy = y * tile_size - this.height * tile_size / 2 + this.cy + height / 2;
+            let vy = get_vy(y);
             for (let x = 0; x < this.width; x++) {
-                let vx = x * tile_size - this.width * tile_size / 2 + this.cx + width / 2;
+                let vx = get_vx(x);
 
                 let stack = this.tiles.get(x, y);
                 for (let tile of stack) {
@@ -90,10 +131,22 @@ export class Stage {
         for (let index = 0; index < this.ants.length; index++) {
             let ant = this.ants[index];
 
-            let vy = ant.y * tile_size - this.height * tile_size / 2 + this.cy + height / 2;
-            let vx = ant.x * tile_size - this.width * tile_size / 2 + this.cx + width / 2;
+            let vx = get_vx(ant.x);
+            let vy = get_vy(ant.y);
 
             ant.draw(ctx, this.tilemap, vx, vy, tile_size, index === this.player_index, animation);
+        }
+
+        for (let y = 0; y < this.height; y++) {
+            let vy = get_vy(y);
+            for (let x = 0; x < this.width; x++) {
+                let pheromone = this.pheromone.get(x, y);
+
+                if (pheromone) {
+                let vx = get_vx(x);
+                    pheromone.draw(ctx, this.tilemap, vx, vy, tile_size, this.hud === PHEROMONE_HUD);
+                }
+            }
         }
     }
 
@@ -140,6 +193,11 @@ export class Stage {
         if (closest_ant.length) {
             this.player_index = closest_ant[0][0];
         }
+    }
+
+    toggle_hud(hud) {
+        if (hud === this.hud) this.hud = NO_HUD;
+        else this.hud = hud;
     }
 }
 
