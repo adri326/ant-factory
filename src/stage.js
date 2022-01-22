@@ -151,6 +151,11 @@ export class Stage {
     }
 
     update() {
+        for (let index = 0; index < this.ants.length; index++) {
+            if (index === this.player_index) continue;
+            this.ants[index].ai(this, index);
+        }
+
         for (let y = 0; y < this.height; y++) {
             for (let x = 0; x < this.width; x++) {
                 let stack = this.tiles.get(x, y);
@@ -164,6 +169,12 @@ export class Stage {
 
         for (let network of this.networks) {
             network.update();
+        }
+    }
+
+    cleanup() {
+        for (let ant of this.ants) {
+            ant.moving = false;
         }
     }
 

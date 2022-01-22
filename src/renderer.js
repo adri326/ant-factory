@@ -37,6 +37,15 @@ export class CanvasManager {
         this.updates = [];
 
         this.currentDrawMethod = (ctx, width, height, manager) => {};
+
+        this.huds = [];
+        this.mouse_x = 0;
+        this.mouse_y = 0;
+
+        this.canvas.addEventListener("mousemove", (event) => {
+            this.mouse_x = event.clientX;
+            this.mouse_y = event.clientY;
+        });
     }
 
     get animations() {
@@ -59,6 +68,13 @@ export class CanvasManager {
         this.ctx.clearRect(0, 0, this.width, this.height);
 
         this.currentDrawMethod(this.ctx, this.width, this.height, this);
+
+        let y = this.canvas.height;
+        for (let n = 0; n < this.huds.length; n++) {
+            if (!this.huds[n].active) continue;
+            let res = this.huds[n].draw(this.ctx, this.canvas.width, y, this.mouse_x, this.mouse_y);
+            y = res[1];
+        }
 
         this.scheduleDraw();
     }

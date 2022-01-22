@@ -73,7 +73,7 @@ export class Ant {
         }
     }
 
-    move(dx, dy) {
+    move(dx, dy, swap = true) {
         if (Math.abs(dx) > Math.abs(dy)) {
             if (dx > 0) this.direction = 1;
             else this.direction = 3;
@@ -81,24 +81,29 @@ export class Ant {
             if (dy > 0) this.direction = 2;
             else this.direction = 0;
         }
-        if (!this.stage) return () => {};
+        if (!this.stage) return;
         if (this.stage.is_passable(this.x + dx, this.y + dy)) {
             let swap_ant = this.stage.ants.find(ant => ant.x === this.x + dx && ant.y === this.y + dy);
-            if (swap_ant) {
+            if (swap_ant && swap) {
                 swap_ant.x = this.x;
                 swap_ant.y = this.y;
                 swap_ant.direction = (this.direction + 2) % 4;
                 swap_ant.moving = true;
+            } else if (swap_ant) {
+                return;
             }
             this.x += dx;
             this.y += dy;
             this.moving = true;
-
-            return () => {
-                this.moving = false;
-                if (swap_ant) swap_ant.moving = false;
-            };
         }
-        return () => {};
+    }
+
+    ai(stage, index) {
+        let pheromone = stage.pheromone.get(this.x, this.y);
+        if (!pheromone) return; // Do nothing
+
+        if (pheromone.direction >= 0 && !this.moving) {
+            this.move(...DIRECTIONS[pheromone.direction], false);
+        }
     }
 }

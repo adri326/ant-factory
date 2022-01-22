@@ -4,6 +4,7 @@ import tile from "./tile.js";
 import {Ant, register_ant_textures} from "./ant.js";
 import {Network} from "./network.js";
 import {Pheromone, register_pheromone_textures} from "./pheromone.js";
+import {register_hud_textures, Hud} from "./hud.js";
 
 const manager = new CanvasManager(document.getElementById("canvas"));
 window.manager = manager;
@@ -14,6 +15,7 @@ window.tilemap = tilemap;
 register_ant_textures(tilemap);
 tile.register_tile_textures(tilemap);
 register_pheromone_textures(tilemap);
+register_hud_textures(tilemap);
 
 const stage = new Stage(tilemap, 8, 8);
 window.stage = stage;
@@ -92,14 +94,15 @@ function scheduleUpdate() {
 
 function update(beforeupdate = () => {}) {
     manager.push_update(() => {
-        let cleanup = beforeupdate();
+        beforeupdate();
         stage.update();
         manager.scheduleDraw();
-        return cleanup;
+        return stage.cleanup.bind(stage);
     });
 
     scheduleUpdate();
 }
+
 
 window.addEventListener("keydown", (event) => {
     let player = stage.current_ant();
@@ -115,8 +118,29 @@ window.addEventListener("keydown", (event) => {
     } else if (event.key === " ") {
         stage.swap_ant();
     } else if (event.key === "p") {
-        stage.toggle_hud(PHEROMONE_HUD);
+        toggle_pheromone();
     }
 });
 
 manager.currentDrawMethod = stage.draw.bind(stage);
+
+let main_hud = new Hud(tilemap, 4, 1);
+main_hud.set_component(1, 0, "hud_pheromone", toggle_pheromone, "Toggles the Pheromone overlay", () => stage.hud === PHEROMONE_HUD);
+
+let pheromone_hud = new Hud(tilemap, 3, 3);
+pheromone_hud.active = false;
+
+pheromone_hud.set_component(1, 0, "hud_pheromone_up", () => {}, "Set pheromone to up");
+pheromone_hud.set_component(1, 2, "hud_pheromone_down", () => {}, "Set pheromone to down");
+pheromone_hud.set_component(0, 1, "hud_pheromone_left", () => {}, "Set pheromone to left");
+pheromone_hud.set_component(2, 1, "hud_pheromone_right", () => {}, "Set pheromone to right");
+pheromone_hud.set_component(1, 1, "hud_pheromone_auto", () => {}, "Set pheromone to your movement");
+pheromone_hud.set_component(0, 0, "hud_pheromone_remove", () => {}, "Remove any pheromone");
+
+function toggle_pheromone() {
+    stage.toggle_hud(PHEROMONE_HUD);
+    pheromone_hud.active = stage.hud === PHEROMONE_HUD;
+}
+
+manager.huds.push(main_hud);
+manager.huds.push(pheromone_hud);

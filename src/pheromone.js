@@ -1,6 +1,6 @@
 import {TILE_SIZE} from "./renderer.js";
 
-const DIRECTION_NAMES = [
+export const DIRECTION_NAMES = [
     "up",
     "right",
     "down",
