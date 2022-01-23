@@ -222,8 +222,6 @@ export const TILE_EDGE = new Tile("edge", PASSABLE_FALSE);
 export const TILE_GROUND = new Tile("ground", PASSABLE_TRUE);
 export const TILE_FENCE = new Connected("fence", "fence", FENCE, 0, false, PASSABLE_FALSE);
 
-console.log(TILE_FENCE);
-
 export const TILES = new Map();
 
 function tile_singleton(name, instance) {

@@ -1,5 +1,7 @@
 import {TILE_SIZE} from "./renderer.js";
 
+noise.seed(Math.random());
+
 export const DIRECTION_NAMES = [
     "up",
     "right",
@@ -66,7 +68,7 @@ export class Pheromone {
 
     draw(ctx, tilemap, vx, vy, tile_size, hud = false) {
         function random(x, t, a, o = 0.0) {
-            return Math.round(perlin.get(x + o, (t + o) * PHEROMONE_FREQ) * a * PHEROMONE_AMP) / TILE_SIZE * tile_size;
+            return Math.round(noise.perlin2(x + o, (t + o) * PHEROMONE_FREQ) * a * PHEROMONE_AMP) / TILE_SIZE * tile_size;
         }
 
         if (this.direction === -1) return;
