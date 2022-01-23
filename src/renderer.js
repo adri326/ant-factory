@@ -46,6 +46,12 @@ export class CanvasManager {
             this.mouse_x = event.clientX;
             this.mouse_y = event.clientY;
         });
+
+        this.canvas.addEventListener("mousedown", (event) => {
+            this.mouse_x = event.clientX;
+            this.mouse_y = event.clientY;
+            this.on_click();
+        });
     }
 
     get animations() {
@@ -77,6 +83,15 @@ export class CanvasManager {
         }
 
         this.scheduleDraw();
+    }
+
+    on_click() {
+        let y = this.canvas.height;
+        for (let n = 0; n < this.huds.length; n++) {
+            if (!this.huds[n].active) continue;
+            let res = this.huds[n].on_click(this.canvas.width, y, this.mouse_x, this.mouse_y);
+            y = res[1];
+        }
     }
 
     pop_update() {

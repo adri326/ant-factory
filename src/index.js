@@ -135,10 +135,19 @@ main_hud.set_component(1, 0, "hud_pheromone", toggle_pheromone, "Toggles the Phe
 let pheromone_hud = new Hud(tilemap, 3, 3);
 pheromone_hud.active = false;
 
-pheromone_hud.set_component(1, 0, "hud_pheromone_up", () => {}, "Set pheromone to up");
-pheromone_hud.set_component(1, 2, "hud_pheromone_down", () => {}, "Set pheromone to down");
-pheromone_hud.set_component(0, 1, "hud_pheromone_left", () => {}, "Set pheromone to left");
-pheromone_hud.set_component(2, 1, "hud_pheromone_right", () => {}, "Set pheromone to right");
+function set_pheromone_dir(direction) {
+    return () => {
+        let player = stage.current_ant();
+        let pheromone = stage.pheromone.get(player.x, player.y);
+        if (!pheromone) return;
+        update(() => pheromone.direction = direction);
+    };
+}
+
+pheromone_hud.set_component(1, 0, "hud_pheromone_up", set_pheromone_dir(0), "Set pheromone to up");
+pheromone_hud.set_component(1, 2, "hud_pheromone_down", set_pheromone_dir(2), "Set pheromone to down");
+pheromone_hud.set_component(0, 1, "hud_pheromone_left", set_pheromone_dir(3), "Set pheromone to left");
+pheromone_hud.set_component(2, 1, "hud_pheromone_right", set_pheromone_dir(1), "Set pheromone to right");
 pheromone_hud.set_component(1, 1, "hud_pheromone_auto", () => {}, "Set pheromone to your movement");
 pheromone_hud.set_component(0, 0, "hud_pheromone_remove", () => {}, "Remove any pheromone");
 

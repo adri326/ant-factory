@@ -63,7 +63,7 @@ export class Hud {
                 corner_x - (this.width - x) * tile_size,
                 corner_y - (this.height - y) * tile_size,
             ];
-        }
+        };
 
         for (let y = 0; y < this.height; y++) {
             for (let x = 0; x < this.width; x++) {
@@ -92,6 +92,28 @@ export class Hud {
                 tilemap.draw(ctx, get_hud_texture(side, state || hovered), vx, vy, tile_size);
                 tilemap.draw(ctx, texture, vx, vy, tile_size);
             }
+        }
+
+        return get_visual_pos(0, 0);
+    }
+
+    on_click(corner_x, corner_y, mouse_x, mouse_y) {
+        let tile_size = TILE_SIZE * ZOOM;
+        const get_visual_pos = (x, y) => {
+            return [
+                corner_x - (this.width - x) * tile_size,
+                corner_y - (this.height - y) * tile_size,
+            ];
+        };
+
+        let [tx, ty] = get_visual_pos(0, 0);
+
+        let x = Math.floor((mouse_x - tx) / tile_size);
+        let y = Math.floor((mouse_y - ty) / tile_size);
+
+        if (x >= 0 && x < this.width && y >= 0 && y < this.height) {
+            let [texture, cb, state, text] = this.components[x + y * this.width];
+            cb(state);
         }
 
         return get_visual_pos(0, 0);
