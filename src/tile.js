@@ -123,6 +123,12 @@ export class Door extends Connected {
     }
 }
 
+const SPIKE_TEXTURES = [
+    "spike_0",
+    "spike_1",
+    "spike_2"
+];
+
 export class Spike extends Tile {
     constructor(jammed = false) {
         super("spike", PASSABLE_TRUE);
@@ -139,7 +145,7 @@ export class Spike extends Tile {
         if (this.jammed) step = Math.min(step, 0);
 
         if (step >= 0) {
-            res.push("spike_" + step);
+            res.push(SPIKE_TEXTURES[step]);
         }
 
         if (this.jammed) res.push("spike_jam");

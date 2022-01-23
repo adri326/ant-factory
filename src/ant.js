@@ -33,6 +33,19 @@ const ANIMATION_FWD_MOD = 2;
 const ANIMATION_STEP = 1.0 / 8 / 2;
 const FWD_DISTANCE = 1/8;
 
+const ANT_WALK_STEPS = 3;
+let ANT_WALK_TEXTURES = [];
+
+for (let dir = 0; dir < DIRECTION_NAMES.length; dir++) {
+    for (let step = 0; step < ANT_WALK_STEPS; step++) {
+        ANT_WALK_TEXTURES.push(`ant_${DIRECTION_NAMES[dir]}_${step}`);
+    }
+}
+
+function get_walk_texture(direction, step) {
+    return ANT_WALK_TEXTURES[direction * ANT_WALK_STEPS + step];
+}
+
 export class Ant {
     constructor(x, y, stage = null) {
         this.x = x;
@@ -46,7 +59,7 @@ export class Ant {
     draw(ctx, tilemap, vx, vy, tile_size, player, animation) {
         if (animation == 0.0 || !this.moving) {
             tilemap.draw(ctx, player ? "ant_shadow_player" : "ant_shadow", vx, vy, tile_size);
-            tilemap.draw(ctx, `ant_${DIRECTION_NAMES[this.direction]}_0`, vx, vy, tile_size);
+            tilemap.draw(ctx, get_walk_texture(this.direction, 0), vx, vy, tile_size);
         } else {
             let step = Math.floor(animation / ANIMATION_STEP);
             let forward_ant = Math.floor((step + 1) / ANIMATION_FWD_MOD) * FWD_DISTANCE;
@@ -65,7 +78,7 @@ export class Ant {
             );
             tilemap.draw(
                 ctx,
-                `ant_${DIRECTION_NAMES[this.direction]}_${WALK_ANIMATION[step % WALK_ANIMATION.length]}`,
+                get_walk_texture(this.direction, WALK_ANIMATION[step % WALK_ANIMATION.length]),
                 vx + dx * (forward_ant - 1.0),
                 vy + dy * (forward_ant - 1.0),
                 tile_size

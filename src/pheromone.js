@@ -17,12 +17,16 @@ const PERLIN_SIN = 2 + Math.random();
 const HUD_FREQ = 4 * Math.PI;
 const HUD_AMP = 0.5;
 
+let PHEROMONE_TEXTURES = [];
+
 export function register_pheromone_textures(tilemap) {
     for (let n = 0; n < N_PHEROMONES; n++) {
         tilemap.add_texture("pheromone_" + n, {x: 15, y: n});
     }
 
     for (let n = 0; n < 4; n++) {
+        PHEROMONE_TEXTURES.push(`pheromone_${DIRECTION_NAMES[n]}`);
+        PHEROMONE_TEXTURES.push(`pheromone_${DIRECTION_NAMES[n]}_small`);
         tilemap.add_texture(`pheromone_${DIRECTION_NAMES[n]}`, {x: 14, y: 2 + n});
         tilemap.add_texture(`pheromone_${DIRECTION_NAMES[n]}_small`, {x: 13, y: 2 + n});
     }
@@ -30,6 +34,10 @@ export function register_pheromone_textures(tilemap) {
     tilemap.add_texture("pheromone_overlay_a", {x: 14, y: 0});
     tilemap.add_texture("pheromone_overlay_b", {x: 14, y: 1});
     tilemap.add_texture("pheromone_wait", {x: 14, y: 6});
+}
+
+function get_pheromone_texture(direction, small = false) {
+    return PHEROMONE_TEXTURES[direction * 2 + small];
 }
 
 export class Pheromone {
@@ -72,10 +80,10 @@ export class Pheromone {
 
             if (this.direction >= 0) {
                 if (this.wait) {
-                    tilemap.draw(ctx, `pheromone_${DIRECTION_NAMES[this.direction]}_small`, vx, vy, tile_size);
+                    tilemap.draw(ctx, get_pheromone_texture(this.direction, true), vx, vy, tile_size);
                     tilemap.draw(ctx, `pheromone_wait`, vx, vy, tile_size)
                 } else {
-                    tilemap.draw(ctx, `pheromone_${DIRECTION_NAMES[this.direction]}`, vx, vy, tile_size);
+                    tilemap.draw(ctx, get_pheromone_texture(this.direction, false), vx, vy, tile_size);
                 }
             }
         } else {

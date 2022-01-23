@@ -2,9 +2,16 @@ import {valid_coordinates} from "./stage.js";
 import {TILE_SIZE} from "./renderer.js";
 import {DIRECTION_NAMES} from "./pheromone.js";
 
+let HUD_BG = [];
+
 export function register_hud_textures(tilemap) {
     let y = 0;
     for (let state of ["off", "on"]) {
+        HUD_BG.push(`hud_left_${state}`);
+        HUD_BG.push(`hud_corner_${state}`);
+        HUD_BG.push(`hud_top_${state}`);
+        HUD_BG.push(`hud_middle_${state}`);
+
         tilemap.add_texture(`hud_left_${state}`, {x: 10, y});
         tilemap.add_texture(`hud_corner_${state}`, {x: 11, y});
         tilemap.add_texture(`hud_top_${state}`, {x: 12, y});
@@ -24,6 +31,15 @@ export function register_hud_textures(tilemap) {
 }
 
 const ZOOM = Math.pow(2, 2);
+
+const SIDE_LEFT = 0;
+const SIDE_CORNER = 1;
+const SIDE_TOP = 2;
+const SIDE_MIDDLE = 3;
+
+function get_hud_texture(side, state) {
+    return HUD_BG[side + state * 4];
+}
 
 export class Hud {
     constructor(tilemap, width, height) {
@@ -66,14 +82,14 @@ export class Hud {
 
                 let side;
                 if (y === 0) {
-                    side = x === 0 ? "corner" : "top";
+                    side = x === 0 ? SIDE_CORNER : SIDE_TOP;
                 } else {
-                    side = x === 0 ? "left" : "middle";
+                    side = x === 0 ? SIDE_LEFT : SIDE_MIDDLE;
                 }
 
                 if (typeof state === "function") state = !!state();
 
-                tilemap.draw(ctx, `hud_${side}_${state || hovered ? "on" : "off"}`, vx, vy, tile_size);
+                tilemap.draw(ctx, get_hud_texture(side, state || hovered), vx, vy, tile_size);
                 tilemap.draw(ctx, texture, vx, vy, tile_size);
             }
         }
