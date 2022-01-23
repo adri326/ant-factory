@@ -74,13 +74,13 @@ stage.ants.push(new Ant(1, 1, stage));
 stage.ants.push(new Ant(3, 1, stage));
 stage.ants.push(new Ant(4, 1, stage));
 
-stage.pheromone.get(2, 1).direction = 2;
-stage.pheromone.get(2, 2).direction = 2;
-stage.pheromone.get(2, 3).direction = 2;
-stage.pheromone.get(2, 4).direction = 1;
-stage.pheromone.get(3, 4).direction = 1;
-stage.pheromone.get(4, 4).direction = 2;
-stage.pheromone.get(4, 5).direction = 2;
+// stage.pheromone.get(2, 1).direction = 2;
+// stage.pheromone.get(2, 2).direction = 2;
+// stage.pheromone.get(2, 3).direction = 2;
+// stage.pheromone.get(2, 4).direction = 1;
+// stage.pheromone.get(3, 4).direction = 1;
+// stage.pheromone.get(4, 4).direction = 2;
+// stage.pheromone.get(4, 5).direction = 2;
 
 let network = Network.from(stage, 4, 6, 1);
 stage.networks.push(network);
@@ -99,9 +99,9 @@ function scheduleUpdate() {
 
 function update(beforeupdate = () => {}) {
     manager.push_update(() => {
+        stage.kill_ants();
         beforeupdate();
         stage.update();
-        manager.scheduleDraw();
         return stage.cleanup.bind(stage);
     });
 

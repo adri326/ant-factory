@@ -11,6 +11,7 @@ export function register_ant_textures(tilemap) {
         tilemap.add_texture("ant_right_" + n, {x: 5, y: 1 + n});
         tilemap.add_texture("ant_down_" + n, {x: 6, y: 1 + n});
         tilemap.add_texture("ant_left_" + n, {x: 7, y: 1 + n});
+        tilemap.add_texture("ant_spiked_" + n, {x: 8, y: 1 + n});
     }
 }
 
@@ -35,11 +36,16 @@ const FWD_DISTANCE = 1/8;
 
 const ANT_WALK_STEPS = 3;
 let ANT_WALK_TEXTURES = [];
+let ANT_SPIKED_TEXTURES = [];
 
 for (let dir = 0; dir < DIRECTION_NAMES.length; dir++) {
     for (let step = 0; step < ANT_WALK_STEPS; step++) {
         ANT_WALK_TEXTURES.push(`ant_${DIRECTION_NAMES[dir]}_${step}`);
     }
+}
+
+for (let n = 0; n < 3; n++) {
+    ANT_SPIKED_TEXTURES.push(`ant_spiked_${n}`);
 }
 
 function get_walk_texture(direction, step) {
@@ -52,15 +58,13 @@ export class Ant {
         this.y = y;
         this.direction = 0;
         this.moving = false;
+        this.spiked = false;
 
         this.stage = stage;
     }
 
     draw(ctx, tilemap, vx, vy, tile_size, player, animation) {
-        if (animation == 0.0 || !this.moving) {
-            tilemap.draw(ctx, player ? "ant_shadow_player" : "ant_shadow", vx, vy, tile_size);
-            tilemap.draw(ctx, get_walk_texture(this.direction, 0), vx, vy, tile_size);
-        } else {
+        if (this.moving && animation > 0.0) {
             let step = Math.floor(animation / ANIMATION_STEP);
             let forward_ant = Math.floor((step + 1) / ANIMATION_FWD_MOD) * FWD_DISTANCE;
             let forward_shadow = (step + 1) * ANIMATION_STEP;
@@ -83,10 +87,23 @@ export class Ant {
                 vy + dy * (forward_ant - 1.0),
                 tile_size
             );
+        } else if (this.spiked && animation > 0.0) {
+            let step = Math.floor(animation * 4);
+            if (step === 0) {
+                tilemap.draw(ctx, "ant_up_0", vx, vy, tile_size);
+            } else {
+                step = Math.min(step - 1, 2);
+                tilemap.draw(ctx, ANT_SPIKED_TEXTURES[step], vx, vy, tile_size);
+            }
+        } else {
+            tilemap.draw(ctx, player ? "ant_shadow_player" : "ant_shadow", vx, vy, tile_size);
+            tilemap.draw(ctx, get_walk_texture(this.direction, 0), vx, vy, tile_size);
         }
     }
 
     move(dx, dy, swap = true) {
+        if (this.spiked) return;
+
         if (Math.abs(dx) > Math.abs(dy)) {
             if (dx > 0) this.direction = 1;
             else this.direction = 3;
@@ -97,7 +114,7 @@ export class Ant {
         if (!this.stage) return;
         if (this.stage.is_passable(this.x + dx, this.y + dy)) {
             let swap_ant = this.stage.ants.find(ant => ant.x === this.x + dx && ant.y === this.y + dy);
-            if (swap_ant && swap) {
+            if (swap_ant && swap && !swap_ant.spiked) {
                 swap_ant.x = this.x;
                 swap_ant.y = this.y;
                 swap_ant.direction = (this.direction + 2) % 4;
@@ -108,6 +125,7 @@ export class Ant {
             this.x += dx;
             this.y += dy;
             this.moving = true;
+
         }
     }
 

@@ -1,6 +1,7 @@
 import {TILE_SIZE} from "./renderer.js";
 // import {Ant} from "./ant.js";
 import {Pheromone} from "./pheromone.js";
+import {Spike} from "./tile.js";
 
 const ANIMATION_LENGTH = 250;
 export const NO_HUD = 0;
@@ -150,6 +151,17 @@ export class Stage {
         }
     }
 
+    kill_ants() {
+        for (let ant of this.ants) {
+            let tiles = this.tiles.get(ant.x, ant.y);
+            for (let tile of tiles) {
+                if (tile instanceof Spike && !tile.jammed) {
+                    ant.spiked = true;
+                }
+            }
+        }
+    }
+
     update() {
         for (let index = 0; index < this.ants.length; index++) {
             if (index === this.player_index) continue;
@@ -173,6 +185,18 @@ export class Stage {
     }
 
     cleanup() {
+        for (let ant of this.ants) {
+            if (ant.spiked) {
+                let tiles = this.tiles.get(ant.x, ant.y);
+                for (let tile of tiles) {
+                    if (tile instanceof Spike) {
+                        tile.jammed = true;
+                    }
+                }
+                this.ants.splice(this.ants.indexOf(ant), 1);
+            }
+        }
+
         for (let ant of this.ants) {
             ant.moving = false;
         }
