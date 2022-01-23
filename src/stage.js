@@ -193,7 +193,13 @@ export class Stage {
                         tile.jammed = true;
                     }
                 }
-                this.ants.splice(this.ants.indexOf(ant), 1);
+                let index = this.ants.indexOf(ant);
+                this.ants.splice(index, 1);
+                if (this.current_ant() === ant) {
+                    this.swap_ant();
+                } else if (this.player_index > index) {
+                    this.player_index--;
+                }
             }
         }
 

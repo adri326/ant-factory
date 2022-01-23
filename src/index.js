@@ -34,7 +34,10 @@ place(0, 0, tile("wall"));
 for (let x = 0; x < 8; x++) {
     place(x, 0, tile("wall"));
     place(x, 1, tile("ground"));
-    place(x, 2, tile("edge"));
+    place(x, 2, tile("ground"));
+    place(x, 3, tile("ground"));
+    place(x, 4, tile("ground"));
+    place(x, 5, tile("edge"));
 }
 
 place(2, 0, tile("door_blue", 0b0100));
@@ -65,14 +68,24 @@ let button = tile("button_blue", 0b0001);
 place(4, 6, button);
 place(4, 7, tile("edge"));
 
-place(3, 2, tile("spike"));
+place(3, 2, tile("ground"));
 place(3, 3, tile("ground"));
 place(4, 2, tile("spike", true));
-place(4, 3, tile("ground"));
+place(4, 3, tile("spike"));
 
-stage.ants.push(new Ant(1, 1, stage));
-stage.ants.push(new Ant(3, 1, stage));
-stage.ants.push(new Ant(4, 1, stage));
+place(1, 4, tile("fence", 0b0101));
+place(1, 3, tile("fence", 0b0110));
+place(2, 3, tile("fence", 0b1010));
+place(3, 3, tile("fence", 0b1000));
+
+place(5, 3, tile("fence", 0b0010));
+place(6, 3, tile("fence", 0b1100));
+place(6, 4, tile("fence", 0b0001));
+
+
+stage.ants.push(new Ant(0, 4, stage));
+stage.ants.push(new Ant(3, 2, stage));
+stage.ants.push(new Ant(5, 2, stage));
 
 // stage.pheromone.get(2, 1).direction = 2;
 // stage.pheromone.get(2, 2).direction = 2;

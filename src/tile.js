@@ -26,8 +26,8 @@ export class Tile {
 }
 
 export class Connected extends Tile {
-    constructor(texture_name_on, texture_name_off, parts, connections, cables_underneath = true) {
-        super(texture_name_on);
+    constructor(texture_name_on, texture_name_off, parts, connections, cables_underneath = true, passable = PASSABLE_IGNORE) {
+        super(texture_name_on, passable);
 
         this.texture_name_off = texture_name_off;
         this.texture_name_on = texture_name_on;
@@ -85,7 +85,8 @@ export class Connected extends Tile {
             template.texture_name_off,
             template.parts,
             connections,
-            template.cables_underneath
+            template.cables_underneath,
+            template.passable
         );
     }
 }
@@ -179,6 +180,12 @@ export function register_tile_textures(tilemap) {
     tilemap.add_texture("door_open", {x: 0, y: 3});
     tilemap.add_texture("door_closed", {x: 1, y: 3});
 
+    tilemap.add_texture("fence", {x: 0, y: 13});
+    tilemap.add_texture("fence_up", {x: 1, y: 13});
+    tilemap.add_texture("fence_right", {x: 2, y: 13});
+    tilemap.add_texture("fence_down", {x: 3, y: 13});
+    tilemap.add_texture("fence_left", {x: 4, y: 13});
+
     tilemap.add_texture("spike", {x: 2, y: 5});
     tilemap.add_texture("spike_jam", {x: 6, y: 5});
     for (let n = 0; n < 3; n++) {
@@ -197,11 +204,25 @@ export const CABLE_BLUE = [
     "cable_blue_left_on"
 ];
 
-export const TILE_CABLE_BLUE = new Connected("cable_blue_on", "cable_blue", CABLE_BLUE, 0, false, false);
+export const FENCE = [
+    "fence_up",
+    "fence_right",
+    "fence_down",
+    "fence_left",
+    "fence_up",
+    "fence_right",
+    "fence_down",
+    "fence_left"
+];
+
+export const TILE_CABLE_BLUE = new Connected("cable_blue_on", "cable_blue", CABLE_BLUE, 0, false);
 
 export const TILE_WALL = new Tile("wall", PASSABLE_FALSE);
 export const TILE_EDGE = new Tile("edge", PASSABLE_FALSE);
 export const TILE_GROUND = new Tile("ground", PASSABLE_TRUE);
+export const TILE_FENCE = new Connected("fence", "fence", FENCE, 0, false, PASSABLE_FALSE);
+
+console.log(TILE_FENCE);
 
 export const TILES = new Map();
 
@@ -221,6 +242,7 @@ tile_component("button_blue", Button, CABLE_BLUE);
 tile_component("door_blue", Door, CABLE_BLUE);
 
 TILES.set("cable_blue", (connections) => Connected.from(TILE_CABLE_BLUE, connections));
+TILES.set("fence", (connections) => Connected.from(TILE_FENCE, connections));
 TILES.set("spike", (jammed = false) => new Spike(jammed));
 
 export default function tile(name, ...data) {
