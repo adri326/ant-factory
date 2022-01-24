@@ -159,6 +159,9 @@ const LASER_MACHINE = [
     "laser_machine_right",
     "laser_machine_left",
     "laser_machine_down",
+    "laser_machine_right_on",
+    "laser_machine_left_on",
+    "laser_machine_down_on",
     "laser_machine_right_low",
     "laser_machine_left_low",
     "laser_machine_down_low",
@@ -242,18 +245,18 @@ export class LaserMachine extends Connected {
     }
 
     get_textures(animation) {
+        let res = [LASER_MACHINE[this.orientation]];
         if (this.network_active) {
+            res.push(LASER_MACHINE[this.orientation + 3]);
+
             let step = Math.floor(animation * 5);
             if (step > 2) step = 4 - step;
 
             if (step > 0) {
-                return [
-                    LASER_MACHINE[this.orientation],
-                    LASER_MACHINE[this.orientation + 3 * step]
-                ];
+                res.push(LASER_MACHINE[this.orientation + 3 * (step + 1)]);
             }
         }
-        return [LASER_MACHINE[this.orientation]];
+        return res;
     }
 }
 
@@ -354,8 +357,8 @@ export function register_tile_textures(tilemap) {
         tilemap.add_texture("spike_" + n, {x: 3 + n, y: 5});
     }
 
-    for (let dy = 0; dy < 3; dy++) {
-        let suffix = dy === 0 ? "" : (dy === 1 ? "_low" : "_high");
+    for (let dy = 0; dy < 4; dy++) {
+        let suffix = ["", "_on", "_low", "_high"][dy];
         tilemap.add_texture("laser_machine_right" + suffix, {x: 2, y: 6 + dy});
         tilemap.add_texture("laser_machine_left" + suffix, {x: 3, y: 6 + dy});
         tilemap.add_texture("laser_machine_down" + suffix, {x: 4, y: 6 + dy});
