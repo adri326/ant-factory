@@ -1,0 +1,23 @@
+7x5
+row 0 wall
+row 1 ground
+row 2 ground
+row 3 ground
+row 4 edge
+
+set 1 2 button_blue (r)
+set 2 2 cable_blue (lr)
+set 3 2 cable_blue (lr)
+set 4 2 cable_blue (lr)
+set 5 2 cable_blue (lu)
+set 5 1 cable_blue (du)
+set 5 0 door_blue (d)
+network 5 0
+
+set 3 1 fence (du)
+set 3 2 fence (du)
+set 3 3 fence (du)
+
+
+ant 1 3
+player 5 3

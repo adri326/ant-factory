@@ -1,7 +1,17 @@
 import {TILE_SIZE} from "./renderer.js";
-// import {Ant} from "./ant.js";
+import {Ant} from "./ant.js";
 import {Pheromone} from "./pheromone.js";
-import {Spike, LaserMachine, Mirror, AntLasered, LASER_DIRECTION, LASER_TEXTURES, MIRROR_BOUNCE} from "./tile.js";
+import {
+    Spike,
+    LaserMachine,
+    Mirror,
+    AntLasered,
+    LASER_DIRECTION,
+    LASER_TEXTURES,
+    MIRROR_BOUNCE
+} from "./tile.js";
+import tile from "./tile.js";
+import {Network} from "./network.js";
 
 const ANIMATION_LENGTH = 250;
 export const NO_HUD = 0;
@@ -364,6 +374,129 @@ export class Stage {
                 this.laser.set(x, y, this.laser.get(x, y) | (1 << orientation));
             }
         }
+    }
+
+    static from_desc(tilemap, description) {
+        let lines = description.split("\n");
+        let [width, height] = lines.shift().split("x").map(x => +x);
+        if (!Number.isInteger(width)) throw new Error("Invalid width!");
+        if (!Number.isInteger(height)) throw new Error("Invalid height!");
+
+        let res = new Stage(tilemap, width, height);
+
+        function parse_number(str) {
+            let match = /^0b([01]+)$/.exec(str);
+            if (match) {
+                return Number.parse(match[1], 2);
+            }
+            match = /^0x([0-9a-fA-F]+)$/.exec(str);
+            if (match) {
+                return Number.parse(match[1], 16);
+            }
+            match = /^[0-9]+(?:\.[0-9]+)$/.exec(str);
+            if (match) {
+                return Number.parse(match[0]);
+            }
+            match = /^\([udlr]+\)$/i.exec(str);
+            if (match) {
+                let letters = match[0].toLowerCase().split("");
+                let up = letters.includes("u");
+                let down = letters.includes("d");
+                let left = letters.includes("l");
+                let right = letters.includes("r");
+
+                return up | (right << 1) | (down << 2) | (left << 3);
+            }
+            return str;
+        }
+
+        function set(x, y, name, ...args) {
+            x = +x;
+            y = +y;
+            let tiles = res.tiles.get(x, y);
+            if (tiles) {
+                tiles.push(tile(name, ...args.map(parse_number)));
+            }
+        }
+
+        function row(y, name, ...args) {
+            y = +y;
+            for (let x = 0; x < width; x++) {
+                let tiles = res.tiles.get(x, y);
+                if (tiles) tiles.push(tile(name, ...args.map(parse_number)));
+            }
+        }
+
+        function fill(x, y, name, ...args) {
+            x = x.split("..").map(str => +str);
+            y = y.split("..").map(str => +str);
+
+            if (x.length === 1) x.push(x[0] + 1);
+            if (y.length === 1) y.push(y[0] + 1);
+
+            for (let y2 = y[0]; y2 < y[1]; y2++) {
+                for (let x2 = x[0]; x2 < x[1]; x2++) {
+                    let tiles = res.tiles.get(x2, y2);
+                    if (tiles) tiles.push(tile(name, ...args.map(parse_number)));
+                }
+            }
+        }
+
+        function network(x, y, z = null) {
+            x = +x;
+            y = +y;
+            if (z === null) {
+                z = (res.tiles.get(x, y)?.length ?? 1) - 1;
+            } else {
+                z = +z;
+            }
+            res.networks.push(Network.from(res, x, y, z));
+        }
+
+        function ant(player, x, y) {
+            if (player) {
+                res.player_index = res.ants.length;
+            }
+
+            res.ants.push(new Ant(+x, +y, res));
+        }
+
+        for (let line of lines) {
+            let args = line.split(" ");
+            if (!args.length) continue;
+
+            switch (args[0].toLowerCase()) {
+                case "set":
+                    set(...args.slice(1));
+                    break;
+
+                case "row":
+                    row(...args.slice(1));
+                    break;
+
+                case "network":
+                    network(...args.slice(1));
+                    break;
+
+                case "ant":
+                    ant(false, ...args.slice(1));
+                    break;
+
+                case "player":
+                    ant(true, ...args.slice(1));
+                    break;
+
+                case "fill":
+                    fill(...args.slice(1));
+                    break;
+            }
+        }
+
+        return res;
+    }
+
+    static from_url(tilemap, url) {
+        return fetch(url).then(res => res.text()).then(raw => Stage.from_desc(tilemap, raw));
     }
 }
 

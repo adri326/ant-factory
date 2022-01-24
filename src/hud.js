@@ -28,6 +28,9 @@ export function register_hud_textures(tilemap) {
 
     tilemap.add_texture("hud_pheromone_auto", {x: 12, y: 7});
     tilemap.add_texture("hud_pheromone_remove", {x: 11, y: 7});
+
+    tilemap.add_texture("hud_autoplay_pause", {x: 10, y: 2});
+    tilemap.add_texture("hud_autoplay_play", {x: 11, y: 2});
 }
 
 const ZOOM = Math.pow(2, 2);
@@ -88,6 +91,7 @@ export class Hud {
                 }
 
                 if (typeof state === "function") state = !!state();
+                if (typeof texture === "function") texture = texture();
 
                 tilemap.draw(ctx, get_hud_texture(side, state || hovered), vx, vy, tile_size);
                 tilemap.draw(ctx, texture, vx, vy, tile_size);

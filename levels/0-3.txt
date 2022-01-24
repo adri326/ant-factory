@@ -1,0 +1,53 @@
+9x9
+
+row 0 wall
+set 0 1 edge
+set 8 1 edge
+fill 1..8 1..8 ground
+fill 1..8 8 edge
+
+set 3 0 cable_blue (d)
+set 3 0 cable_green (r)
+
+set 4 0 cable_green (lrd)
+fill 5..7 0 cable_green (lr)
+set 7 0 cable_green (ld)
+set 7 1 button_green (u)
+set 4 1 cable_green (du)
+set 4 2 cable_green (ul)
+set 3 2 cable_green (rdl)
+fill 3 3..5 cable_green (dul)
+set 3 5 cable_green (ul)
+fill 2 2..6 laser_green (r) 1
+network 4 0
+
+set 1 1 button_blue (r)
+set 2 1 cable_blue (lr)
+set 3 1 cable_blue (lru)
+set 4 1 cable_blue (lr)
+set 5 1 cable_blue (ld)
+fill 5 2..5 cable_blue (dur)
+set 5 5 cable_blue (ur)
+fill 6 2..6 laser_blue (l) 0
+network 1 1
+
+set 1 0 door_blue (r)
+set 2 0 cable_blue (lr)
+set 3 0 and_blue (l)
+network 1 0
+
+set 2 1 fence (du)
+set 6 1 fence (du)
+
+set 2 6 fence (ur)
+set 3 6 fence (lr)
+set 4 6 fence (lrd)
+set 5 6 fence (lr)
+set 6 6 fence (lu)
+
+set 3 7 button_green (r)
+set 4 7 laser_green (l)
+network 3 7
+
+player 1 7
+ant 7 7

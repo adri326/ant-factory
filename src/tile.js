@@ -124,6 +124,26 @@ export class Door extends Connected {
     }
 }
 
+export class And extends Connected {
+    constructor(parts, connections) {
+        super("and_on", "and_off", parts, connections);
+    }
+
+    get is_input() {
+        return true;
+    }
+
+    update(stage, x, y) {
+        this.active = true;
+        for (let tile of stage.tiles.get(x, y)) {
+            if (tile === this) continue;
+            if (tile instanceof Connected) {
+                this.active = this.active && tile.network_active;
+            }
+        }
+    }
+}
+
 const SPIKE_TEXTURES = [
     "spike_0",
     "spike_1",
@@ -330,13 +350,16 @@ export function register_tile_textures(tilemap) {
     tilemap.add_texture("ground", {x: 2, y: 1});
     tilemap.add_texture("edge", {x: 2, y: 2});
 
-    for (let dy = 0; dy <= 1; dy++) {
-        let suffix = dy === 0 ? "" : "_on";
-        tilemap.add_texture("cable_blue" + suffix, {x: 0, y: 14 + dy});
-        tilemap.add_texture("cable_blue_up" + suffix, {x: 1, y: 14 + dy});
-        tilemap.add_texture("cable_blue_right" + suffix, {x: 2, y: 14 + dy});
-        tilemap.add_texture("cable_blue_down" + suffix, {x: 3, y: 14 + dy});
-        tilemap.add_texture("cable_blue_left" + suffix, {x: 4, y: 14 + dy});
+    for (let dx = 0; dx <= 1; dx++) {
+        let color = dx === 0 ? "blue" : "green";
+        for (let dy = 0; dy <= 1; dy++) {
+            let suffix = dy === 0 ? "" : "_on";
+            tilemap.add_texture(`cable_${color}${suffix}`, {x: 0 + 5 * dx, y: 14 + dy});
+            tilemap.add_texture(`cable_${color}_up${suffix}`, {x: 1 + 5 * dx, y: 14 + dy});
+            tilemap.add_texture(`cable_${color}_right${suffix}`, {x: 2 + 5 * dx, y: 14 + dy});
+            tilemap.add_texture(`cable_${color}_down${suffix}`, {x: 3 + 5 * dx, y: 14 + dy});
+            tilemap.add_texture(`cable_${color}_left${suffix}`, {x: 4 + 5 * dx, y: 14 + dy});
+        }
     }
 
     tilemap.add_texture("button_up", {x: 0, y: 5});
@@ -344,6 +367,9 @@ export function register_tile_textures(tilemap) {
 
     tilemap.add_texture("door_open", {x: 0, y: 3});
     tilemap.add_texture("door_closed", {x: 1, y: 3});
+
+    tilemap.add_texture("and_off", {x: 0, y: 6});
+    tilemap.add_texture("and_on", {x: 1, y: 6});
 
     tilemap.add_texture("fence", {x: 0, y: 13});
     tilemap.add_texture("fence_up", {x: 1, y: 13});
@@ -407,6 +433,17 @@ export const CABLE_BLUE = [
     "cable_blue_left_on"
 ];
 
+export const CABLE_GREEN = [
+    "cable_green_up",
+    "cable_green_right",
+    "cable_green_down",
+    "cable_green_left",
+    "cable_green_up_on",
+    "cable_green_right_on",
+    "cable_green_down_on",
+    "cable_green_left_on"
+];
+
 export const FENCE = [
     "fence_up",
     "fence_right",
@@ -419,6 +456,7 @@ export const FENCE = [
 ];
 
 export const TILE_CABLE_BLUE = new Connected("cable_blue_on", "cable_blue", CABLE_BLUE, 0, false);
+export const TILE_CABLE_GREEN = new Connected("cable_green_on", "cable_green", CABLE_GREEN, 0, false);
 
 export const TILE_WALL = new Tile("wall", PASSABLE_FALSE);
 export const TILE_EDGE = new Tile("edge", PASSABLE_FALSE);
@@ -441,12 +479,22 @@ tile_singleton("ground", TILE_GROUND);
 
 tile_component("button_blue", Button, CABLE_BLUE);
 tile_component("door_blue", Door, CABLE_BLUE);
+tile_component("button_green", Button, CABLE_GREEN);
+tile_component("door_green", Door, CABLE_GREEN);
 
 TILES.set("cable_blue", (connections) => Connected.from(TILE_CABLE_BLUE, connections));
+TILES.set("cable_green", (connections) => Connected.from(TILE_CABLE_GREEN, connections));
 TILES.set("fence", (connections) => Connected.from(TILE_FENCE, connections));
 TILES.set("spike", (jammed = false) => new Spike(jammed));
+
 TILES.set("laser_blue", (connections, orientation = 0) => new LaserMachine(CABLE_BLUE, connections, orientation));
+TILES.set("and_blue", (connections) => new And(CABLE_BLUE, connections));
 TILES.set("mirror_blue", (connections, orientation = false) => new Mirror(CABLE_BLUE, connections, orientation));
+
+TILES.set("laser_green", (connections, orientation = 0) => new LaserMachine(CABLE_GREEN, connections, orientation));
+TILES.set("and_green", (connections) => new And(CABLE_GREEN, connections));
+TILES.set("mirror_green", (connections, orientation = false) => new Mirror(CABLE_GREEN, connections, orientation));
+
 TILES.set("ant_lasered", () => new AntLasered());
 
 export default function tile(name, ...data) {

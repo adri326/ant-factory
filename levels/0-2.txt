@@ -1,0 +1,33 @@
+5x8
+
+row 0 wall
+set 1 1 edge
+fill 0 1..7 ground
+fill 2..5 1..7 ground
+set 0 7 edge
+fill 2..5 7 edge
+
+fill 2..5 3 spike
+set 2 4 spike
+set 3 4 spike 1
+set 4 4 spike
+
+set 0 0 door_blue (r)
+set 1 0 cable_blue (lr)
+set 2 0 cable_blue (lr)
+set 3 0 cable_blue (ld)
+set 2 1 cable_blue (dr)
+set 2 2 button_blue (u)
+set 3 1 cable_blue (l)
+set 3 1 cable_blue (r)
+set 3 1 and_blue (u)
+set 4 1 cable_blue (dl)
+set 4 2 button_blue (u)
+network 4 2
+network 2 2
+network 3 0
+
+player 0 6
+ant 2 5
+ant 3 6
+ant 4 6
