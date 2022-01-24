@@ -41,7 +41,9 @@ for (let x = 0; x < 8; x++) {
 }
 
 place(2, 0, tile("door_blue", 0b0100));
-place(2, 1, tile("cable_blue", 0b0101));
+place(2, 1, tile("cable_blue", 0b0111));
+place(3, 1, tile("laser_blue", 0b1000, 0));
+place(7, 1, tile("mirror_blue", 0b0000, false));
 
 place(2, 2, tile("ground"));
 place(2, 2, tile("cable_blue", 0b0101));

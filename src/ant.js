@@ -12,6 +12,7 @@ export function register_ant_textures(tilemap) {
         tilemap.add_texture("ant_down_" + n, {x: 6, y: 1 + n});
         tilemap.add_texture("ant_left_" + n, {x: 7, y: 1 + n});
         tilemap.add_texture("ant_spiked_" + n, {x: 8, y: 1 + n});
+        tilemap.add_texture("ant_laser_" + n, {x: 9, y: 1 + n});
     }
 }
 
@@ -37,6 +38,7 @@ const FWD_DISTANCE = 1/8;
 const ANT_WALK_STEPS = 3;
 let ANT_WALK_TEXTURES = [];
 let ANT_SPIKED_TEXTURES = [];
+let ANT_LASER_TEXTURES = [];
 
 for (let dir = 0; dir < DIRECTION_NAMES.length; dir++) {
     for (let step = 0; step < ANT_WALK_STEPS; step++) {
@@ -46,6 +48,7 @@ for (let dir = 0; dir < DIRECTION_NAMES.length; dir++) {
 
 for (let n = 0; n < 3; n++) {
     ANT_SPIKED_TEXTURES.push(`ant_spiked_${n}`);
+    ANT_LASER_TEXTURES.push(`ant_laser_${n}`);
 }
 
 function get_walk_texture(direction, step) {
@@ -95,6 +98,14 @@ export class Ant {
                 step = Math.min(step - 1, 2);
                 tilemap.draw(ctx, ANT_SPIKED_TEXTURES[step], vx, vy, tile_size);
             }
+        } else if (this.laser && animation > 0.0) {
+            let step = Math.floor(animation * 4);
+            if (step === 0) {
+                tilemap.draw(ctx, "ant_up_0", vx, vy, tile_size);
+            } else {
+                step = Math.min(step - 1, 2);
+                tilemap.draw(ctx, ANT_LASER_TEXTURES[step], vx, vy, tile_size);
+            }
         } else {
             tilemap.draw(ctx, player ? "ant_shadow_player" : "ant_shadow", vx, vy, tile_size);
             tilemap.draw(ctx, get_walk_texture(this.direction, 0), vx, vy, tile_size);
@@ -102,7 +113,7 @@ export class Ant {
     }
 
     move(dx, dy, swap = true) {
-        if (this.spiked) return;
+        if (this.spiked || this.laser) return;
 
         if (Math.abs(dx) > Math.abs(dy)) {
             if (dx > 0) this.direction = 1;

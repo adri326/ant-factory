@@ -1,7 +1,7 @@
 import {TILE_SIZE} from "./renderer.js";
 // import {Ant} from "./ant.js";
 import {Pheromone} from "./pheromone.js";
-import {Spike} from "./tile.js";
+import {Spike, LaserMachine, Mirror, LASER_DIRECTION, LASER_TEXTURES, MIRROR_BOUNCE, TILE_ANT_LASERED} from "./tile.js";
 
 const ANIMATION_LENGTH = 250;
 export const NO_HUD = 0;
@@ -57,6 +57,41 @@ export class PheromoneGrid {
     }
 }
 
+const NO_LASER = 0;
+const LASER_RIGHT = 1;
+const LASER_LEFT = 2;
+const LASER_DOWN = 4;
+const LASER_UP = 8;
+
+export class LaserGrid {
+    constructor(width, height) {
+        this.width = width;
+        this.height = height;
+        this.tiles = new Array(width * height).fill(NO_LASER);
+    }
+
+    get(x, y) {
+        if (valid_coordinates(x, y, this.width, this.height)) {
+            return this.tiles[x + y * this.width];
+        } else {
+            return NO_LASER;
+        }
+    }
+
+    set(x, y, state) {
+        if (valid_coordinates(x, y, this.width, this.height)) {
+            this.tiles[x + y * this.width] = state;
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    reset() {
+        this.tiles.fill(NO_LASER);
+    }
+}
+
 export class Stage {
     constructor(tilemap, width, height) {
         this.tiles = new Grid(width, height);
@@ -77,6 +112,8 @@ export class Stage {
         this.last_tick = Date.now();
 
         this.pheromone = new PheromoneGrid(width, height);
+        this.laser = new LaserGrid(width, height);
+        this.previous_laser = new LaserGrid(width, height);
 
         this.hud = NO_HUD;
     }
@@ -141,10 +178,25 @@ export class Stage {
         for (let y = 0; y < this.height; y++) {
             let vy = get_vy(y);
             for (let x = 0; x < this.width; x++) {
+                let vx = get_vx(x);
+
+                let laser = this.laser.get(x, y);
+                if (laser !== NO_LASER) {
+                    let step = Math.floor(animation * 5);
+                    if (step > 2) step = 4 - step;
+
+                    if (step > 0) {
+                        for (let n = 0; n < 4; n++) {
+                            if (laser & (1 << n)) {
+                                this.tilemap.draw(ctx, LASER_TEXTURES[n + 4 * (step - 1)], vx, vy, tile_size);
+                            }
+                        }
+                    }
+                }
+
                 let pheromone = this.pheromone.get(x, y);
 
                 if (pheromone) {
-                let vx = get_vx(x);
                     pheromone.draw(ctx, this.tilemap, vx, vy, tile_size, this.hud === PHEROMONE_HUD);
                 }
             }
@@ -158,6 +210,12 @@ export class Stage {
                 if (tile instanceof Spike && !tile.jammed) {
                     ant.spiked = true;
                 }
+            }
+            if (ant.spiked) continue;
+
+            let laser = this.previous_laser.get(ant.x, ant.y);
+            if (laser) {
+                ant.laser = true;
             }
         }
     }
@@ -182,16 +240,30 @@ export class Stage {
         for (let network of this.networks) {
             network.update();
         }
+
+        for (let y = 0; y < this.height; y++) {
+            for (let x = 0; x < this.width; x++) {
+                for (let tile of this.tiles.get(x, y)) {
+                    if (tile instanceof LaserMachine && tile.network_active) {
+                        this.send_laser(x, y, tile.orientation);
+                    }
+                }
+            }
+        }
     }
 
     cleanup() {
         for (let ant of this.ants) {
-            if (ant.spiked) {
+            if (ant.spiked || ant.laser) {
                 let tiles = this.tiles.get(ant.x, ant.y);
-                for (let tile of tiles) {
-                    if (tile instanceof Spike) {
-                        tile.jammed = true;
+                if (ant.spiked) {
+                    for (let tile of tiles) {
+                        if (tile instanceof Spike) {
+                            tile.jammed = true;
+                        }
                     }
+                } else if (ant.laser) {
+                    tiles.push(TILE_ANT_LASERED);
                 }
                 let index = this.ants.indexOf(ant);
                 this.ants.splice(index, 1);
@@ -205,6 +277,22 @@ export class Stage {
 
         for (let ant of this.ants) {
             ant.moving = false;
+        }
+
+        let tmp = this.laser;
+        this.laser = this.previous_laser;
+        this.previous_laser = tmp;
+
+        this.laser.reset();
+
+        for (let y = 0; y < this.height; y++) {
+            for (let x = 0; x < this.width; x++) {
+                for (let tile of this.tiles.get(x, y)) {
+                    if (tile instanceof Mirror) {
+                        tile.laser = 0;
+                    }
+                }
+            }
         }
     }
 
@@ -239,6 +327,33 @@ export class Stage {
     toggle_hud(hud) {
         if (hud === this.hud) this.hud = NO_HUD;
         else this.hud = hud;
+    }
+
+    send_laser(x, y, orientation) {
+        let n = 0;
+
+        let [dx, dy] = LASER_DIRECTION[orientation];
+        while (n++ < 100 && x >= 0 && y >= 0 && x < this.width && y < this.height) {
+            x += dx;
+            y += dy;
+            let mirror = null;
+
+            for (let tile of this.tiles.get(x, y)) {
+                if (tile instanceof Mirror) {
+                    mirror = tile;
+                    break;
+                }
+            }
+
+            if (mirror) {
+                mirror.laser |= (1 << orientation);
+                orientation = MIRROR_BOUNCE[orientation + mirror.laser_offset];
+                dx = LASER_DIRECTION[orientation][0];
+                dy = LASER_DIRECTION[orientation][1];
+            } else {
+                this.laser.set(x, y, this.laser.get(x, y) | (1 << orientation));
+            }
+        }
     }
 }
 

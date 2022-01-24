@@ -155,6 +155,138 @@ export class Spike extends Tile {
     }
 }
 
+const LASER_MACHINE = [
+    "laser_machine_right",
+    "laser_machine_left",
+    "laser_machine_down",
+    "laser_machine_right_low",
+    "laser_machine_left_low",
+    "laser_machine_down_low",
+    "laser_machine_right_high",
+    "laser_machine_left_high",
+    "laser_machine_down_high",
+];
+
+export const LASER_DIRECTION = [
+    [1, 0],
+    [-1, 0],
+    [0, 1],
+    [0, -1]
+];
+
+export const LASER_TEXTURES = [
+    "laser_horizontal_low",
+    "laser_horizontal_low",
+    "laser_vertical_low",
+    "laser_vertical_low",
+    "laser_horizontal_high",
+    "laser_horizontal_high",
+    "laser_vertical_high",
+    "laser_vertical_high"
+];
+
+export const LASER_MIRROR_TEXTURES = [
+    "laser_mirror_0_low",
+    "laser_mirror_1_low",
+    "laser_mirror_1_low",
+    "laser_mirror_0_low",
+    "laser_mirror_3_low",
+    "laser_mirror_2_low",
+    "laser_mirror_3_low",
+    "laser_mirror_2_low",
+
+    "laser_mirror_0_high",
+    "laser_mirror_1_high",
+    "laser_mirror_1_high",
+    "laser_mirror_0_high",
+    "laser_mirror_3_high",
+    "laser_mirror_2_high",
+    "laser_mirror_3_high",
+    "laser_mirror_2_high",
+];
+
+export const MIRROR_TEXTURES = [
+    "mirror_0",
+    "mirror_1",
+    "mirror_2",
+    "mirror_3",
+];
+
+export const MIRROR_BOUNCE = [
+    2,
+    3,
+    0,
+    1,
+    3,
+    2,
+    1,
+    0
+];
+
+export class LaserMachine extends Connected {
+    constructor(parts, connections, orientation = 0) {
+        super(LASER_MACHINE[orientation], LASER_MACHINE[orientation], parts, connections, true, PASSABLE_FALSE);
+
+        this.orientation = orientation;
+    }
+
+    get is_output() {
+        return true;
+    }
+
+    get_textures(animation) {
+        if (this.network_active) {
+            let step = Math.floor(animation * 5);
+            if (step > 2) step = 4 - step;
+
+            if (step > 0) {
+                return [
+                    LASER_MACHINE[this.orientation],
+                    LASER_MACHINE[this.orientation + 3 * step]
+                ];
+            }
+        }
+        return [LASER_MACHINE[this.orientation]];
+    }
+}
+
+export class Mirror extends Connected {
+    constructor(parts, connections, orientation = false) {
+        let texture = `mirror_${orientation ? 0 : 3}`;
+        super(texture, texture, parts, connections, true, PASSABLE_FALSE);
+
+        this.orientation = orientation;
+        this.laser = 0;
+    }
+
+    get is_output() {
+        return true;
+    }
+
+    get laser_offset() {
+        return !!this.orientation == !!this.network_active ? 0 : 4;;
+    }
+
+    get_textures(animation, stage, x, y) {
+        let orientation = !!this.orientation == !!this.network_active ? 0 : 3;
+        let res = ["mirror_turntable", MIRROR_TEXTURES[orientation]];
+
+        let step = Math.floor(animation * 5);
+        if (step > 2) step = 4 - step;
+
+        if (step > 0 && this.laser) {
+            for (let n = 0; n < 4; n++) {
+                if (this.laser & (1 << n)) {
+                    res.push(LASER_MIRROR_TEXTURES[n + 8 * (step - 1) + this.laser_offset]);
+                }
+            }
+        }
+
+        return res;
+    }
+}
+
+
 export function register_tile_textures(tilemap) {
     tilemap.add_texture("wall", {
         x: 0, y: 0,
@@ -191,6 +323,33 @@ export function register_tile_textures(tilemap) {
     for (let n = 0; n < 3; n++) {
         tilemap.add_texture("spike_" + n, {x: 3 + n, y: 5});
     }
+
+    for (let dy = 0; dy < 3; dy++) {
+        let suffix = dy === 0 ? "" : (dy === 1 ? "_low" : "_high");
+        tilemap.add_texture("laser_machine_right" + suffix, {x: 2, y: 6 + dy});
+        tilemap.add_texture("laser_machine_left" + suffix, {x: 3, y: 6 + dy});
+        tilemap.add_texture("laser_machine_down" + suffix, {x: 4, y: 6 + dy});
+    }
+
+    for (let dx = 0; dx < 2; dx++) {
+        let suffix = dx === 0 ? "low" : "high";
+        tilemap.add_texture("laser_horizontal_" + suffix, {x: 5 + 2 * dx, y: 7});
+        tilemap.add_texture("laser_vertical_" + suffix, {x: 6 + 2 * dx, y: 7});
+    }
+
+    for (let dy = 0; dy < 2; dy++) {
+        let suffix = dy === 0 ? "low" : "high";
+        for (let dx = 0; dx < 4; dx++) {
+            tilemap.add_texture(`laser_mirror_${dx}_${suffix}`, {x: 5 + dx, y: 9 + dy});
+        }
+    }
+
+    tilemap.add_texture("mirror_turntable", {x: 5, y: 6});
+    for (let dx = 0; dx < 4; dx++) {
+        tilemap.add_texture(`mirror_${dx}`, {x: 5 + dx, y: 8});
+    }
+
+    tilemap.add_texture("ant_lasered", {x: 6, y: 6});
 }
 
 export const CABLE_BLUE = [
@@ -220,6 +379,7 @@ export const TILE_CABLE_BLUE = new Connected("cable_blue_on", "cable_blue", CABL
 export const TILE_WALL = new Tile("wall", PASSABLE_FALSE);
 export const TILE_EDGE = new Tile("edge", PASSABLE_FALSE);
 export const TILE_GROUND = new Tile("ground", PASSABLE_TRUE);
+export const TILE_ANT_LASERED = new Tile("ant_lasered", PASSABLE_FALSE);
 export const TILE_FENCE = new Connected("fence", "fence", FENCE, 0, false, PASSABLE_FALSE);
 
 export const TILES = new Map();
@@ -235,6 +395,7 @@ function tile_component(name, tile_class, parts) {
 tile_singleton("wall", TILE_WALL);
 tile_singleton("edge", TILE_EDGE);
 tile_singleton("ground", TILE_GROUND);
+tile_singleton("ant_lasered", TILE_ANT_LASERED);
 
 tile_component("button_blue", Button, CABLE_BLUE);
 tile_component("door_blue", Door, CABLE_BLUE);
@@ -242,6 +403,8 @@ tile_component("door_blue", Door, CABLE_BLUE);
 TILES.set("cable_blue", (connections) => Connected.from(TILE_CABLE_BLUE, connections));
 TILES.set("fence", (connections) => Connected.from(TILE_FENCE, connections));
 TILES.set("spike", (jammed = false) => new Spike(jammed));
+TILES.set("laser_blue", (connections, orientation = 0) => new LaserMachine(CABLE_BLUE, connections, orientation));
+TILES.set("mirror_blue", (connections, orientation = false) => new Mirror(CABLE_BLUE, connections, orientation));
 
 export default function tile(name, ...data) {
     if (TILES.has(name)) {
