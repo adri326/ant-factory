@@ -1,7 +1,7 @@
 import {TILE_SIZE} from "./renderer.js";
 // import {Ant} from "./ant.js";
 import {Pheromone} from "./pheromone.js";
-import {Spike, LaserMachine, Mirror, LASER_DIRECTION, LASER_TEXTURES, MIRROR_BOUNCE, TILE_ANT_LASERED} from "./tile.js";
+import {Spike, LaserMachine, Mirror, AntLasered, LASER_DIRECTION, LASER_TEXTURES, MIRROR_BOUNCE} from "./tile.js";
 
 const ANIMATION_LENGTH = 250;
 export const NO_HUD = 0;
@@ -263,17 +263,21 @@ export class Stage {
                         }
                     }
                 } else if (ant.laser) {
-                    tiles.push(TILE_ANT_LASERED);
+                    tiles.push(new AntLasered());
                 }
+
                 let index = this.ants.indexOf(ant);
-                this.ants.splice(index, 1);
                 if (this.current_ant() === ant) {
                     this.swap_ant();
-                } else if (this.player_index > index) {
+                }
+                this.ants.splice(index, 1);
+                if (this.player_index > index) {
                     this.player_index--;
                 }
             }
         }
+
+        while (this.player_index >= this.ants.length) this.player_index--;
 
         for (let ant of this.ants) {
             ant.moving = false;
@@ -288,7 +292,7 @@ export class Stage {
         for (let y = 0; y < this.height; y++) {
             for (let x = 0; x < this.width; x++) {
                 for (let tile of this.tiles.get(x, y)) {
-                    if (tile instanceof Mirror) {
+                    if (tile instanceof Mirror || tile instanceof AntLasered) {
                         tile.laser = 0;
                     }
                 }
@@ -337,11 +341,15 @@ export class Stage {
             x += dx;
             y += dy;
             let mirror = null;
+            let blocked = false;
 
             for (let tile of this.tiles.get(x, y)) {
                 if (tile instanceof Mirror) {
                     mirror = tile;
                     break;
+                } else if (tile instanceof AntLasered) {
+                    blocked = true;
+                    tile.laser |= (1 << orientation);
                 }
             }
 
@@ -350,6 +358,8 @@ export class Stage {
                 orientation = MIRROR_BOUNCE[orientation + mirror.laser_offset];
                 dx = LASER_DIRECTION[orientation][0];
                 dy = LASER_DIRECTION[orientation][1];
+            } else if (blocked) {
+                break;
             } else {
                 this.laser.set(x, y, this.laser.get(x, y) | (1 << orientation));
             }

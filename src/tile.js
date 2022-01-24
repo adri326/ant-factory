@@ -223,6 +223,13 @@ export const MIRROR_BOUNCE = [
     0
 ];
 
+export const ANT_LASERED_TEXTURES = [];
+for (let strength of ["low", "high"]) {
+    for (let direction = 0; direction < 4; direction++) {
+        ANT_LASERED_TEXTURES.push(`ant_lasered_${direction}_${strength}`);
+    }
+}
+
 export class LaserMachine extends Connected {
     constructor(parts, connections, orientation = 0) {
         super(LASER_MACHINE[orientation], LASER_MACHINE[orientation], parts, connections, true, PASSABLE_FALSE);
@@ -267,7 +274,7 @@ export class Mirror extends Connected {
         return !!this.orientation == !!this.network_active ? 0 : 4;;
     }
 
-    get_textures(animation, stage, x, y) {
+    get_textures(animation) {
         let orientation = !!this.orientation == !!this.network_active ? 0 : 3;
         let res = ["mirror_turntable", MIRROR_TEXTURES[orientation]];
 
@@ -286,6 +293,29 @@ export class Mirror extends Connected {
     }
 }
 
+export class AntLasered extends Tile {
+    constructor() {
+        super("ant_lasered", PASSABLE_FALSE);
+        this.laser = 0;
+    }
+
+    get_textures(animation) {
+        let step = Math.floor(animation * 5);
+        if (step > 2) step = 4 - step;
+
+        let res = ["ant_lasered"];
+
+        if (step > 0 && this.laser) {
+            for (let n = 0; n < 4; n++) {
+                if (this.laser & (1 << n)) {
+                    res.push(ANT_LASERED_TEXTURES[n + 4 * (step - 1)]);
+                }
+            }
+        }
+
+        return res;
+    }
+}
 
 export function register_tile_textures(tilemap) {
     tilemap.add_texture("wall", {
@@ -350,6 +380,17 @@ export function register_tile_textures(tilemap) {
     }
 
     tilemap.add_texture("ant_lasered", {x: 6, y: 6});
+    let ant_lasered = [
+        [9, 7],
+        [10, 7],
+        [9, 9],
+        [10, 9],
+    ];
+    for (let dy = 0; dy < 2; dy++) {
+        for (let [direction, [x, y]] of ant_lasered.entries()) {
+            tilemap.add_texture(`ant_lasered_${direction}_${dy === 0 ? "low" : "high"}`, {x, y: y + dy});
+        }
+    }
 }
 
 export const CABLE_BLUE = [
@@ -379,7 +420,6 @@ export const TILE_CABLE_BLUE = new Connected("cable_blue_on", "cable_blue", CABL
 export const TILE_WALL = new Tile("wall", PASSABLE_FALSE);
 export const TILE_EDGE = new Tile("edge", PASSABLE_FALSE);
 export const TILE_GROUND = new Tile("ground", PASSABLE_TRUE);
-export const TILE_ANT_LASERED = new Tile("ant_lasered", PASSABLE_FALSE);
 export const TILE_FENCE = new Connected("fence", "fence", FENCE, 0, false, PASSABLE_FALSE);
 
 export const TILES = new Map();
@@ -395,7 +435,6 @@ function tile_component(name, tile_class, parts) {
 tile_singleton("wall", TILE_WALL);
 tile_singleton("edge", TILE_EDGE);
 tile_singleton("ground", TILE_GROUND);
-tile_singleton("ant_lasered", TILE_ANT_LASERED);
 
 tile_component("button_blue", Button, CABLE_BLUE);
 tile_component("door_blue", Door, CABLE_BLUE);
@@ -405,6 +444,7 @@ TILES.set("fence", (connections) => Connected.from(TILE_FENCE, connections));
 TILES.set("spike", (jammed = false) => new Spike(jammed));
 TILES.set("laser_blue", (connections, orientation = 0) => new LaserMachine(CABLE_BLUE, connections, orientation));
 TILES.set("mirror_blue", (connections, orientation = false) => new Mirror(CABLE_BLUE, connections, orientation));
+TILES.set("ant_lasered", () => new AntLasered());
 
 export default function tile(name, ...data) {
     if (TILES.has(name)) {
