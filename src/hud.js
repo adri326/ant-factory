@@ -31,6 +31,8 @@ export function register_hud_textures(tilemap) {
 
     tilemap.add_texture("hud_autoplay_pause", {x: 10, y: 2});
     tilemap.add_texture("hud_autoplay_play", {x: 11, y: 2});
+
+    tilemap.add_texture("hud_wait", {x: 10, y: 3});
 }
 
 const ZOOM = Math.pow(2, 2);

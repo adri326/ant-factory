@@ -6,34 +6,34 @@ set 8 1 edge
 fill 1..8 1..8 ground
 fill 1..8 8 edge
 
-set 3 0 cable_blue (d)
-set 3 0 cable_green (r)
+set 3 0 cable blue (d)
+set 3 0 cable green (r)
 
-set 4 0 cable_green (lrd)
-fill 5..7 0 cable_green (lr)
-set 7 0 cable_green (ld)
-set 7 1 button_green (u)
-set 4 1 cable_green (du)
-set 4 2 cable_green (ul)
-set 3 2 cable_green (rdl)
-fill 3 3..5 cable_green (dul)
-set 3 5 cable_green (ul)
-fill 2 2..6 laser_green (r) 1
+set 4 0 cable green (lrd)
+fill 5..7 0 cable green (lr)
+set 7 0 cable green (ld)
+set 7 1 button green (u)
+set 4 1 cable green (du)
+set 4 2 cable green (ul)
+set 3 2 cable green (rdl)
+fill 3 3..5 cable green (dul)
+set 3 5 cable green (ul)
+fill 2 2..6 laser green (r) 1
 network 4 0
 
-set 1 1 button_blue (r)
-set 2 1 cable_blue (lr)
-set 3 1 cable_blue (lru)
-set 4 1 cable_blue (lr)
-set 5 1 cable_blue (ld)
-fill 5 2..5 cable_blue (dur)
-set 5 5 cable_blue (ur)
-fill 6 2..6 laser_blue (l) 0
+set 1 1 button blue (r)
+set 2 1 cable blue (lr)
+set 3 1 cable blue (lru)
+set 4 1 cable blue (lr)
+set 5 1 cable blue (ld)
+fill 5 2..5 cable blue (dur)
+set 5 5 cable blue (ur)
+fill 6 2..6 laser blue (l) 0
 network 1 1
 
-set 1 0 door_blue (r)
-set 2 0 cable_blue (lr)
-set 3 0 and_blue (l)
+set 1 0 door red (r)
+set 2 0 cable red (lr)
+set 3 0 and red (l)
 network 1 0
 
 set 2 1 fence (du)
@@ -45,8 +45,8 @@ set 4 6 fence (lrd)
 set 5 6 fence (lr)
 set 6 6 fence (lu)
 
-set 3 7 button_green (r)
-set 4 7 laser_green (l)
+set 3 7 button red (r)
+set 4 7 laser red (l)
 network 3 7
 
 player 1 7

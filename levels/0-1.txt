@@ -5,13 +5,13 @@ row 2 ground
 row 3 ground
 row 4 edge
 
-set 1 2 button_blue (r)
-set 2 2 cable_blue (lr)
-set 3 2 cable_blue (lr)
-set 4 2 cable_blue (lr)
-set 5 2 cable_blue (lu)
-set 5 1 cable_blue (du)
-set 5 0 door_blue (d)
+set 1 2 button blue (r)
+set 2 2 cable blue (lr)
+set 3 2 cable blue (lr)
+set 4 2 cable blue (lr)
+set 5 2 cable blue (lu)
+set 5 1 cable blue (du)
+set 5 0 door blue (d)
 network 5 0
 
 set 3 1 fence (du)

@@ -350,8 +350,8 @@ export function register_tile_textures(tilemap) {
     tilemap.add_texture("ground", {x: 2, y: 1});
     tilemap.add_texture("edge", {x: 2, y: 2});
 
-    for (let dx = 0; dx <= 1; dx++) {
-        let color = dx === 0 ? "blue" : "green";
+    for (let dx = 0; dx < 3; dx++) {
+        let color = CABLE_NAMES[dx];
         for (let dy = 0; dy <= 1; dy++) {
             let suffix = dy === 0 ? "" : "_on";
             tilemap.add_texture(`cable_${color}${suffix}`, {x: 0 + 5 * dx, y: 14 + dy});
@@ -422,27 +422,25 @@ export function register_tile_textures(tilemap) {
     }
 }
 
-export const CABLE_BLUE = [
-    "cable_blue_up",
-    "cable_blue_right",
-    "cable_blue_down",
-    "cable_blue_left",
-    "cable_blue_up_on",
-    "cable_blue_right_on",
-    "cable_blue_down_on",
-    "cable_blue_left_on"
-];
+export const CABLES = [];
+export const CABLE_NAMES = ["blue", "green", "red"];
 
-export const CABLE_GREEN = [
-    "cable_green_up",
-    "cable_green_right",
-    "cable_green_down",
-    "cable_green_left",
-    "cable_green_up_on",
-    "cable_green_right_on",
-    "cable_green_down_on",
-    "cable_green_left_on"
-];
+for (let color = 0; color < 3; color++) {
+     CABLES.push([
+        `cable_${CABLE_NAMES[color]}_up`,
+        `cable_${CABLE_NAMES[color]}_right`,
+        `cable_${CABLE_NAMES[color]}_down`,
+        `cable_${CABLE_NAMES[color]}_left`,
+        `cable_${CABLE_NAMES[color]}_up_on`,
+        `cable_${CABLE_NAMES[color]}_right_on`,
+        `cable_${CABLE_NAMES[color]}_down_on`,
+        `cable_${CABLE_NAMES[color]}_left_on`
+    ]);
+}
+
+export const CABLE_BLUE = CABLES[0];
+
+export const CABLE_GREEN = CABLES[1];
 
 export const FENCE = [
     "fence_up",
@@ -455,8 +453,8 @@ export const FENCE = [
     "fence_left"
 ];
 
-export const TILE_CABLE_BLUE = new Connected("cable_blue_on", "cable_blue", CABLE_BLUE, 0, false);
-export const TILE_CABLE_GREEN = new Connected("cable_green_on", "cable_green", CABLE_GREEN, 0, false);
+export const TILE_CABLES = CABLES.map((c, i) => new Connected(`cable_${CABLE_NAMES[i]}_on`, `cable_${CABLE_NAMES[i]}`, c, 0, false));
+export const TILE_CABLES_MAP = new Map(TILE_CABLES.map((t, i) => [CABLE_NAMES[i], t]));
 
 export const TILE_WALL = new Tile("wall", PASSABLE_FALSE);
 export const TILE_EDGE = new Tile("edge", PASSABLE_FALSE);
@@ -465,35 +463,30 @@ export const TILE_FENCE = new Connected("fence", "fence", FENCE, 0, false, PASSA
 
 export const TILES = new Map();
 
+export const CABLE_MAP = new Map(CABLES.map((c, i) => [CABLE_NAMES[i], c]));
+
 function tile_singleton(name, instance) {
     TILES.set(name, () => instance);
 }
 
-function tile_component(name, tile_class, parts) {
-    TILES.set(name, (connections) => new tile_class(parts, connections));
+function tile_component(name, tile_class) {
+    TILES.set(name, (color, connections) => new tile_class(CABLE_MAP.get(color), connections));
 }
 
 tile_singleton("wall", TILE_WALL);
 tile_singleton("edge", TILE_EDGE);
 tile_singleton("ground", TILE_GROUND);
 
-tile_component("button_blue", Button, CABLE_BLUE);
-tile_component("door_blue", Door, CABLE_BLUE);
-tile_component("button_green", Button, CABLE_GREEN);
-tile_component("door_green", Door, CABLE_GREEN);
+tile_component("button", Button);
+tile_component("door", Door);
 
-TILES.set("cable_blue", (connections) => Connected.from(TILE_CABLE_BLUE, connections));
-TILES.set("cable_green", (connections) => Connected.from(TILE_CABLE_GREEN, connections));
+TILES.set("cable", (color, connections) => Connected.from(TILE_CABLES_MAP.get(color), connections));
 TILES.set("fence", (connections) => Connected.from(TILE_FENCE, connections));
 TILES.set("spike", (jammed = false) => new Spike(jammed));
 
-TILES.set("laser_blue", (connections, orientation = 0) => new LaserMachine(CABLE_BLUE, connections, orientation));
-TILES.set("and_blue", (connections) => new And(CABLE_BLUE, connections));
-TILES.set("mirror_blue", (connections, orientation = false) => new Mirror(CABLE_BLUE, connections, orientation));
-
-TILES.set("laser_green", (connections, orientation = 0) => new LaserMachine(CABLE_GREEN, connections, orientation));
-TILES.set("and_green", (connections) => new And(CABLE_GREEN, connections));
-TILES.set("mirror_green", (connections, orientation = false) => new Mirror(CABLE_GREEN, connections, orientation));
+TILES.set("laser", (color, connections, orientation = 0) => new LaserMachine(CABLE_MAP.get(color), connections, orientation));
+TILES.set("and", (color, connections) => new And(CABLE_MAP.get(color), connections));
+TILES.set("mirror", (color, connections, orientation = false) => new Mirror(CABLE_MAP.get(color), connections, orientation));
 
 TILES.set("ant_lasered", () => new AntLasered());
 

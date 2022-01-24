@@ -78,12 +78,13 @@ window.addEventListener("keydown", (event) => {
 
 manager.currentDrawMethod = stage.draw.bind(stage);
 
-let main_hud = new Hud(tilemap, 4, 1);
-main_hud.set_component(1, 0, "hud_pheromone", toggle_pheromone, "Toggles the Pheromone overlay", () => stage.hud === PHEROMONE_HUD);
+let main_hud = new Hud(tilemap, 5, 1);
+main_hud.set_component(2, 0, "hud_pheromone", toggle_pheromone, "Toggles the Pheromone overlay", () => stage.hud === PHEROMONE_HUD);
 main_hud.set_component(0, 0, () => autoplay ? "hud_autoplay_pause" : "hud_autoplay_play", () => {
     autoplay = !autoplay;
     if (autoplay) scheduleUpdate();
 }, "Let the simulation run without your input", () => autoplay);
+main_hud.set_component(1, 0, "hud_wait", () => update(), "Wait one turn", false);
 
 let pheromone_hud = new Hud(tilemap, 3, 3);
 pheromone_hud.active = false;
