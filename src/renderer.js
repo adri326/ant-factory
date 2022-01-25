@@ -36,7 +36,8 @@ export class CanvasManager {
         //      cleanup()
         this.updates = [];
 
-        this.currentDrawMethod = (ctx, width, height, manager) => {};
+        this.current_draw_method = (ctx, width, height, manager) => {};
+        this.current_click_method = (x, y, width, height, manager) => {};
 
         this.huds = [];
         this.mouse_x = 0;
@@ -73,7 +74,7 @@ export class CanvasManager {
     draw() {
         this.ctx.clearRect(0, 0, this.width, this.height);
 
-        this.currentDrawMethod(this.ctx, this.width, this.height, this);
+        this.current_draw_method(this.ctx, this.width, this.height, this);
 
         let y = this.canvas.height;
         for (let n = 0; n < this.huds.length; n++) {
@@ -92,6 +93,7 @@ export class CanvasManager {
             let res = this.huds[n].on_click(this.canvas.width, y, this.mouse_x, this.mouse_y);
             y = res[1];
         }
+        this.current_click_method(this.mouse_x, this.mouse_y, this.width, this.height, this);
     }
 
     pop_update() {

@@ -112,8 +112,12 @@ export class Ant {
         }
     }
 
+    get can_move() {
+        return !this.spiked && !this.laser && !this.moving;
+    }
+
     move(dx, dy, swap = true) {
-        if (this.spiked || this.laser) return;
+        if (!this.can_move) return;
 
         if (Math.abs(dx) > Math.abs(dy)) {
             if (dx > 0) this.direction = 1;
@@ -125,12 +129,27 @@ export class Ant {
         if (!this.stage) return;
         if (this.stage.is_passable(this.x + dx, this.y + dy)) {
             let swap_ant = this.stage.ants.find(ant => ant.x === this.x + dx && ant.y === this.y + dy);
-            if (swap_ant && swap && !swap_ant.spiked) {
-                swap_ant.x = this.x;
-                swap_ant.y = this.y;
-                swap_ant.direction = (this.direction + 2) % 4;
-                swap_ant.moving = true;
+            if (swap_ant && swap_ant.can_move) {
+                if (swap) {
+                    swap_ant.x = this.x;
+                    swap_ant.y = this.y;
+                    swap_ant.direction = (this.direction + 2) % 4;
+                    swap_ant.moving = true;
+                } else {
+                    let x2 = this.x + dx * 2;
+                    let y2 = this.y + dy * 2;
+                    // Cannot push more than one ant
+                    if (this.stage.ants.some(ant => ant.x === x2 && ant.y === y2)) return;
+                    // Cannot push an ant onto an impassable space
+                    if (!this.stage.is_passable(x2, y2)) return;
+
+                    swap_ant.x = x2;
+                    swap_ant.y = y2;
+                    swap_ant.direction = this.direction;
+                    swap_ant.moving = true;
+                }
             } else if (swap_ant) {
+                // Cannot push/swap with an ant that cannot move
                 return;
             }
             this.x += dx;

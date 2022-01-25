@@ -28,7 +28,10 @@ load_level("0-3");
 
 const LEVELS = window.LEVELS = new Map(await Promise.all(level_promises));
 
-const stage = window.stage = LEVELS.get("0-3");
+const stage = window.stage = LEVELS.get("0-2");
+
+manager.current_draw_method = stage.draw.bind(stage);
+manager.current_click_method = stage.on_click.bind(stage);
 
 let update_timeout = null;
 function scheduleUpdate() {
@@ -42,7 +45,9 @@ function scheduleUpdate() {
     }, 1000);
 }
 
-let autoplay = false;
+let auto_pheromone = false;
+let auto_play = false;
+let push_ants = false;
 
 function update(beforeupdate = () => {}) {
     manager.push_update(() => {
@@ -52,58 +57,149 @@ function update(beforeupdate = () => {}) {
         return stage.cleanup.bind(stage);
     });
 
-    if (autoplay) scheduleUpdate();
+    if (auto_play) scheduleUpdate();
 }
 
 
 window.addEventListener("keydown", (event) => {
     let player = stage.current_ant();
 
-    if (event.key === "ArrowUp") {
-        update(() => player.move(0, -1));
-    } else if (event.key === "ArrowDown") {
-        update(() => player.move(0, 1));
-    } else if (event.key === "ArrowLeft") {
-        update(() => player.move(-1, 0));
-    } else if (event.key === "ArrowRight") {
-        update(() => player.move(1, 0));
-    } else if (event.key === " ") {
+    function set_pheromone(direction) {
+        let pheromone = stage.pheromone.get(player.x, player.y);
+        if (pheromone) pheromone.direction = direction;
+    }
+
+    if (event.code === "ArrowUp" || event.code === "KeyW") {
+        if (pheromone_hud.active && event.shiftKey) {
+            update(() => set_pheromone(0));
+        } else {
+            update(() => {
+                if (auto_pheromone && pheromone_hud.active) set_pheromone(0);
+                player.move(0, -1, !push_ants);
+            });
+        }
+    } else if (event.code === "ArrowDown" || event.code === "KeyS") {
+        if (pheromone_hud.active && event.shiftKey) {
+            update(() => set_pheromone(2));
+        } else {
+            update(() => {
+                if (auto_pheromone && pheromone_hud.active) set_pheromone(2);
+                player.move(0, 1, !push_ants);
+            });
+        }
+    } else if (event.code === "ArrowLeft" || event.code === "KeyA") {
+        if (pheromone_hud.active && event.shiftKey) {
+            update(() => set_pheromone(3));
+        } else {
+            update(() => {
+                if (auto_pheromone && pheromone_hud.active) set_pheromone(3);
+                player.move(-1, 0, !push_ants);
+            });
+        }
+    } else if (event.code === "ArrowRight" || event.code === "KeyD") {
+        if (pheromone_hud.active && event.shiftKey) {
+            update(() => set_pheromone(1));
+        } else {
+            update(() => {
+                if (auto_pheromone && pheromone_hud.active) set_pheromone(1);
+                player.move(1, 0, !push_ants);
+            });
+        }
+    } else if (event.code === "Space") {
         stage.swap_ant();
-    } else if (event.key === "p") {
+    } else if (event.code === "KeyP") {
         toggle_pheromone();
-    } else if (event.key === ".") {
+    } else if (event.code === "KeyY") {
+        push_ants = !push_ants;
+    } else if (event.code === "Semicolon") {
+        auto_play = !auto_play;
+        if (auto_play) scheduleUpdate();
+        else if (update_timeout) {
+            clearTimeout(update_timeout);
+            update_timeout = null;
+        }
+    } else if (event.code === "Period") {
         update();
+    } else if (event.code === "KeyX" && pheromone_hud.active) {
+        update(() => set_pheromone(-1));
+    } else if (event.code === "KeyQ" && pheromone_hud.active) {
+        auto_pheromone = !auto_pheromone;
+    } else if (event.code === "KeyT" && pheromone_hud.active) {
+        update(() => {
+            let pheromone = stage.pheromone.get(player.x, player.y);
+            if (!pheromone) return;
+            pheromone.wait = !pheromone.wait;
+            if (pheromone.wait && pheromone.direction === -1) pheromone.direction = 0;
+        });
     }
 });
 
-manager.currentDrawMethod = stage.draw.bind(stage);
 
 let main_hud = new Hud(tilemap, 5, 1);
-main_hud.set_component(2, 0, "hud_pheromone", toggle_pheromone, "Toggles the Pheromone overlay", () => stage.hud === PHEROMONE_HUD);
-main_hud.set_component(0, 0, () => autoplay ? "hud_autoplay_pause" : "hud_autoplay_play", () => {
-    autoplay = !autoplay;
-    if (autoplay) scheduleUpdate();
-}, "Let the simulation run without your input", () => autoplay);
+main_hud.set_component(0, 0, () => auto_play ? "hud_autoplay_pause" : "hud_autoplay_play", () => {
+    auto_play = !auto_play;
+    if (auto_play) scheduleUpdate();
+    else if (update_timeout) {
+        clearTimeout(update_timeout);
+        update_timeout = null;
+    }
+}, "Let the simulation run without your input", () => auto_play);
 main_hud.set_component(1, 0, "hud_wait", () => update(), "Wait one turn", false);
+main_hud.set_component(2, 0, "hud_pheromone", toggle_pheromone, "Toggles the Pheromone overlay", () => stage.hud === PHEROMONE_HUD);
+main_hud.set_component(3, 0, () => push_ants ? "hud_push_on" : "hud_push_off", () => push_ants = !push_ants, "Toggles pushing other ants", () => push_ants);
 
 let pheromone_hud = new Hud(tilemap, 3, 3);
 pheromone_hud.active = false;
 
 function set_pheromone_dir(direction) {
     return () => {
+        auto_pheromone = false;
         let player = stage.current_ant();
-        let pheromone = stage.pheromone.get(player.x, player.y);
-        if (!pheromone) return;
-        update(() => pheromone.direction = direction);
+        if (!player) return;
+        update(() => {
+            let pheromone = stage.pheromone.get(player.x, player.y);
+            if (!pheromone) return;
+            pheromone.direction = direction
+        });
     };
 }
 
-pheromone_hud.set_component(1, 0, "hud_pheromone_up", set_pheromone_dir(0), "Set pheromone to up");
-pheromone_hud.set_component(1, 2, "hud_pheromone_down", set_pheromone_dir(2), "Set pheromone to down");
-pheromone_hud.set_component(0, 1, "hud_pheromone_left", set_pheromone_dir(3), "Set pheromone to left");
-pheromone_hud.set_component(2, 1, "hud_pheromone_right", set_pheromone_dir(1), "Set pheromone to right");
-pheromone_hud.set_component(1, 1, "hud_pheromone_auto", () => {}, "Set pheromone to your movement");
-pheromone_hud.set_component(0, 0, "hud_pheromone_remove", () => {}, "Remove any pheromone");
+function pheromone_has_dir(direction) {
+    return () => {
+        let player = stage.current_ant();
+        if (!player) return false;
+
+        let pheromone = stage.pheromone.get(player.x, player.y);
+        if (!pheromone) return false;
+
+        return pheromone.direction === direction;
+    };
+}
+
+pheromone_hud.set_component(1, 0, "hud_pheromone_up", set_pheromone_dir(0), "Set pheromone to up", pheromone_has_dir(0));
+pheromone_hud.set_component(1, 2, "hud_pheromone_down", set_pheromone_dir(2), "Set pheromone to down", pheromone_has_dir(2));
+pheromone_hud.set_component(0, 1, "hud_pheromone_left", set_pheromone_dir(3), "Set pheromone to left", pheromone_has_dir(3));
+pheromone_hud.set_component(2, 1, "hud_pheromone_right", set_pheromone_dir(1), "Set pheromone to right", pheromone_has_dir(1));
+pheromone_hud.set_component(1, 1, "hud_pheromone_auto", () => auto_pheromone = !auto_pheromone, "Set pheromone to your movement", () => auto_pheromone);
+pheromone_hud.set_component(0, 0, "hud_pheromone_remove", set_pheromone_dir(-1), "Remove any pheromone");
+pheromone_hud.set_component(0, 2, "hud_pheromone_wait", () => {
+    let player = stage.current_ant();
+    if (!player) return;
+    update(() => {
+        let pheromone = stage.pheromone.get(player.x, player.y);
+        if (!pheromone) return;
+        pheromone.wait = !pheromone.wait;
+        if (pheromone.wait && pheromone.direction === -1) pheromone.direction = 0;
+    });
+}, "Set the instruction to wait on that tile for a turn", () => {
+    let player = stage.current_ant();
+    if (!player) return false;
+
+    let pheromone = stage.pheromone.get(player.x, player.y);
+    if (!pheromone) return false;
+
+    return pheromone.wait;
+});
 
 function toggle_pheromone() {
     stage.toggle_hud(PHEROMONE_HUD);

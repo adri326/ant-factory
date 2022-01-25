@@ -28,11 +28,15 @@ export function register_hud_textures(tilemap) {
 
     tilemap.add_texture("hud_pheromone_auto", {x: 12, y: 7});
     tilemap.add_texture("hud_pheromone_remove", {x: 11, y: 7});
+    tilemap.add_texture("hud_pheromone_wait", {x: 11, y: 6});
 
     tilemap.add_texture("hud_autoplay_pause", {x: 10, y: 2});
     tilemap.add_texture("hud_autoplay_play", {x: 11, y: 2});
 
     tilemap.add_texture("hud_wait", {x: 10, y: 3});
+
+    tilemap.add_texture("hud_push_on", {x: 11, y: 3});
+    tilemap.add_texture("hud_push_off", {x: 11, y: 4});
 }
 
 const ZOOM = Math.pow(2, 2);

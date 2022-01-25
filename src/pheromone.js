@@ -71,7 +71,7 @@ export class Pheromone {
             return Math.round(noise.perlin2(x + o, (t + o) * PHEROMONE_FREQ) * a * PHEROMONE_AMP) / TILE_SIZE * tile_size;
         }
 
-        if (this.direction === -1) return;
+        if (this.direction === -1 && !this.wait) return;
         let t = Date.now();
 
         if (hud) {

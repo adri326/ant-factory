@@ -213,6 +213,34 @@ export class Stage {
         }
     }
 
+    on_click(x, y, width, height, manager) {
+        let tile_size = TILE_SIZE * Math.ceil(Math.pow(2, this.zoom));
+
+        const get_vx = (x) => {
+            return x * tile_size - this.width * tile_size / 2 + this.cx + width / 2;;
+        };
+
+        const get_vy = (y) => {
+            return y * tile_size - this.height * tile_size / 2 + this.cy + height / 2;
+        };
+
+        let sx = get_vx(0);
+        let sy = get_vy(0);
+
+        let fx = Math.floor((x - sx) / tile_size);
+        let fy = Math.floor((y - sy) / tile_size);
+
+        if (fx >= 0 && fy >= 0 && fx < this.width && fy < this.height) {
+            for (let n = 0; n < this.ants.length; n++) {
+                let ant = this.ants[n];
+                if (ant.x === fx && ant.y === fy) {
+                    this.player_index = n;
+                    break;
+                }
+            }
+        }
+    }
+
     kill_ants() {
         for (let ant of this.ants) {
             let tiles = this.tiles.get(ant.x, ant.y);
