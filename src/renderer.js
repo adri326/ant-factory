@@ -1,5 +1,8 @@
 export const TILE_SIZE = 16;
 
+export const FADEOUT_DURATION = 250;
+export const FADEIN_DURATION = 250;
+
 export class CanvasManager {
     constructor(canvas) {
         this.canvas = canvas;
@@ -53,6 +56,10 @@ export class CanvasManager {
             this.mouse_y = event.clientY;
             this.on_click();
         });
+
+        this.fade_callback = null;
+        this.fade = 0;
+        this.fadein = false;
     }
 
     get animations() {
@@ -75,6 +82,23 @@ export class CanvasManager {
         this.ctx.clearRect(0, 0, this.width, this.height);
 
         this.current_draw_method(this.ctx, this.width, this.height, this);
+
+        if (Date.now() - this.fade < FADEOUT_DURATION) {
+            let alpha = (Date.now() - this.fade) / FADEOUT_DURATION;
+            if (this.fadein) alpha = 1 - alpha;
+            alpha = ease_function(alpha);
+
+            this.ctx.fillStyle = `rgba(8, 8, 8, ${alpha})`;
+            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        } else if (typeof this.fade_callback === "function") {
+            if (!this.fadein) {
+                this.ctx.fillStyle = `#080808`;
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+            }
+            let callback = this.fade_callback;
+            this.fade_callback = null;
+            callback(this);
+        }
 
         let y = this.canvas.height;
         for (let n = 0; n < this.huds.length; n++) {
@@ -137,6 +161,18 @@ export class CanvasManager {
     get height() {
         return this.canvas.height;
     }
+
+    fade_out(callback = (() => {})) {
+        this.fade_callback = callback;
+        this.fade = Date.now();
+        this.fadein = false;
+    }
+
+    fade_in(callback = (() => {})) {
+        this.fade_callback = callback;
+        this.fade = Date.now();
+        this.fadein = true;
+    }
 }
 
 export class Tilemap {
@@ -185,4 +221,11 @@ export class Tilemap {
             image.src = url;
         });
     }
+}
+
+
+export function ease_function(x, alpha = 1.5) {
+    let xa = Math.pow(x, alpha);
+    let x2a = Math.pow(1.0 - x, alpha);
+    return xa / (xa + x2a);
 }

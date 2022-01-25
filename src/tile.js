@@ -124,6 +124,45 @@ export class Door extends Connected {
     }
 }
 
+export class Passage extends Tile {
+    constructor(open) {
+        super("passage_closed");
+        this._open = open;
+    }
+
+    get open() {
+        let open = this._open;
+        if (typeof this._open === "string") {
+            let [level, x, y] = this._open.split("/");
+
+            // This is bad but ssshhh
+            let stage = window.LEVELS.get(level);
+            if (stage) {
+                open = true;
+                for (let tile of stage.tiles.get(+x, +y)) {
+                    open = tile.is_passable(open);
+                }
+            } else {
+                open = false;
+            }
+        }
+        return open;
+    }
+
+    get_textures() {
+        if (this.open) {
+            return ["passage", "passage_open"];
+        } else {
+            return ["passage", "passage_closed"];
+        }
+    }
+
+    is_passable(was_passable) {
+        if (this.open) return was_passable;
+        else return false;
+    }
+}
+
 export class And extends Connected {
     constructor(parts, connections) {
         super("and_on", "and_off", parts, connections);
@@ -368,6 +407,10 @@ export function register_tile_textures(tilemap) {
     tilemap.add_texture("door_open", {x: 0, y: 3});
     tilemap.add_texture("door_closed", {x: 1, y: 3});
 
+    tilemap.add_texture("passage_open", {x: 0, y: 4});
+    tilemap.add_texture("passage", {x: 1, y: 4});
+    tilemap.add_texture("passage_closed", {x: 2, y: 4});
+
     tilemap.add_texture("and_off", {x: 0, y: 6});
     tilemap.add_texture("and_on", {x: 1, y: 6});
 
@@ -479,6 +522,8 @@ tile_singleton("ground", TILE_GROUND);
 
 tile_component("button", Button);
 tile_component("door", Door);
+
+TILES.set("passage", (open) => new Passage(open));
 
 TILES.set("cable", (color, connections) => Connected.from(TILE_CABLES_MAP.get(color), connections));
 TILES.set("fence", (connections) => Connected.from(TILE_FENCE, connections));

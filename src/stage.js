@@ -1,4 +1,4 @@
-import {TILE_SIZE} from "./renderer.js";
+import {TILE_SIZE, ease_function} from "./renderer.js";
 import {Ant} from "./ant.js";
 import {Pheromone} from "./pheromone.js";
 import {
@@ -124,6 +124,8 @@ export class Stage {
         this.pheromone = new PheromoneGrid(width, height);
         this.laser = new LaserGrid(width, height);
         this.previous_laser = new LaserGrid(width, height);
+
+        this.warps = [];
 
         this.hud = NO_HUD;
     }
@@ -404,6 +406,17 @@ export class Stage {
         }
     }
 
+    active_warp() {
+        let player = this.current_ant();
+        if (!player) return null;
+
+        for (let [x, y, level, tx, ty] of this.warps) {
+            if (x === player.x && y === player.y) return [level, tx, ty];
+        }
+
+        return null;
+    }
+
     static from_desc(tilemap, description) {
         let lines = description.split("\n");
         let [width, height] = lines.shift().split("x").map(x => +x);
@@ -489,6 +502,10 @@ export class Stage {
             res.ants.push(new Ant(+x, +y, res));
         }
 
+        function warp(x, y, level, tx = null, ty = null) {
+            res.warps.push([+x, +y, level, tx === null ? null : +tx, ty === null ? null : +ty]);
+        }
+
         for (let line of lines) {
             let args = line.split(" ");
             if (!args.length) continue;
@@ -517,6 +534,10 @@ export class Stage {
                 case "fill":
                     fill(...args.slice(1));
                     break;
+
+                case "warp":
+                    warp(...args.slice(1));
+                    break;
             }
         }
 
@@ -534,11 +555,4 @@ export function valid_coordinates(x, y, width, height) {
         && x >= 0 && x < width
         && y >= 0 && y < height
     );
-}
-
-export function ease_function(x) {
-    const ALPHA = 1.5;
-    let xa = Math.pow(x, ALPHA);
-    let x2a = Math.pow(1.0 - x, ALPHA);
-    return xa / (xa + x2a);
 }

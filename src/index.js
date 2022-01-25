@@ -28,10 +28,11 @@ load_level("0-3");
 
 const LEVELS = window.LEVELS = new Map(await Promise.all(level_promises));
 
-const stage = window.stage = LEVELS.get("0-2");
+let stage = window.stage = LEVELS.get("0-1");
 
 manager.current_draw_method = stage.draw.bind(stage);
 manager.current_click_method = stage.on_click.bind(stage);
+manager.fade_in();
 
 let update_timeout = null;
 function scheduleUpdate() {
@@ -49,12 +50,40 @@ let auto_pheromone = false;
 let auto_play = false;
 let push_ants = false;
 
+let block_update = false;
 function update(beforeupdate = () => {}) {
+    if (block_update) return;
     manager.push_update(() => {
         stage.kill_ants();
         beforeupdate();
         stage.update();
-        return stage.cleanup.bind(stage);
+
+        return function cleanup() {
+            stage.cleanup();
+
+            // Check if the player is on a warp
+            let warp = stage.active_warp();
+            if (warp) {
+                let [level, tx, ty] = warp;
+
+                // Initiate warp:
+                block_update = true;
+                manager.fade_out(() => {
+                    let previous_stage = stage;
+                    stage = LEVELS.get(level);
+                    let player = stage.current_ant();
+                    if (tx !== null && ty !== null && player) {
+                        player.x = tx;
+                        player.y = ty;
+                        player.direction = previous_stage.current_ant()?.direction ?? 0;
+                    }
+                    manager.current_draw_method = stage.draw.bind(stage);
+                    manager.current_click_method = stage.on_click.bind(stage);
+
+                    manager.fade_in(() => block_update = false);
+                });
+            }
+        };
     });
 
     if (auto_play) scheduleUpdate();

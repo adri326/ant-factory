@@ -5,6 +5,9 @@ set 0 1 edge
 set 8 1 edge
 fill 1..8 1..8 ground
 fill 1..8 8 edge
+set 1 8 ground
+set 1 8 passage 0-2/0/0
+warp 1 8 0-2 0 1
 
 set 3 0 cable blue (d)
 set 3 0 cable green (r)

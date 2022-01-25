@@ -2,9 +2,12 @@
 
 row 0 wall
 set 1 1 edge
-fill 0 1..7 ground
+fill 0 1..8 ground
 fill 2..5 1..7 ground
-set 0 7 edge
+
+set 0 7 passage 0-1/5/0
+warp 0 7 0-1 5 1
+
 fill 2..5 7 edge
 
 fill 2..5 3 spike
@@ -31,3 +34,5 @@ player 0 6
 ant 2 5
 ant 3 6
 ant 4 6
+
+warp 0 0 0-3 1 7
