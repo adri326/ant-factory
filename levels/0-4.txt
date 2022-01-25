@@ -1,0 +1,20 @@
+8x8
+
+row 0 wall
+fill 0..8 1..7 ground
+row 7 edge
+
+set 2 3 belt 0 (u)
+set 2 4 belt 0 (d)
+set 2 2 belt 1 (l)
+set 3 2 belt 1 (r)
+set 4 2 belt 2 (u)
+set 4 3 belt 2 (d)
+set 4 4 belt 3 (r)
+set 3 4 belt 3 (l)
+
+
+ant 2 2
+ant 4 3
+
+player 7 6

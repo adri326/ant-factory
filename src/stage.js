@@ -171,7 +171,7 @@ export class Stage {
 
                 let stack = this.tiles.get(x, y);
                 for (let tile of stack) {
-                    for (let texture of tile.get_textures(animation)) {
+                    for (let texture of tile.get_textures(animation, this.last_tick)) {
                         this.tilemap.draw(ctx, texture, vx, vy, tile_size, animation);
                     }
                 }
@@ -376,33 +376,21 @@ export class Stage {
     send_laser(x, y, orientation) {
         let n = 0;
 
-        let [dx, dy] = LASER_DIRECTION[orientation];
         while (n++ < 100 && x >= 0 && y >= 0 && x < this.width && y < this.height) {
+            let [dx, dy] = LASER_DIRECTION[orientation];
             x += dx;
             y += dy;
-            let mirror = null;
-            let blocked = false;
+            let place_laser = true;
 
             for (let tile of this.tiles.get(x, y)) {
-                if (tile instanceof Mirror) {
-                    mirror = tile;
-                    break;
-                } else if (tile instanceof AntLasered) {
-                    blocked = true;
-                    tile.laser |= (1 << orientation);
-                }
+                let res = tile.handle_laser(orientation);
+                orientation = res[0];
+                place_laser = place_laser && res[1];
             }
 
-            if (mirror) {
-                mirror.laser |= (1 << orientation);
-                orientation = MIRROR_BOUNCE[orientation + mirror.laser_offset];
-                dx = LASER_DIRECTION[orientation][0];
-                dy = LASER_DIRECTION[orientation][1];
-            } else if (blocked) {
-                break;
-            } else {
-                this.laser.set(x, y, this.laser.get(x, y) | (1 << orientation));
-            }
+            if (orientation === -1) break;
+
+            if (place_laser) this.laser.set(x, y, this.laser.get(x, y) | (1 << orientation));
         }
     }
 
@@ -428,17 +416,17 @@ export class Stage {
         function parse_number(str) {
             let match = /^0b([01]+)$/.exec(str);
             if (match) {
-                return Number.parse(match[1], 2);
+                return Number.parseInt(match[1], 2);
             }
             match = /^0x([0-9a-fA-F]+)$/.exec(str);
             if (match) {
-                return Number.parse(match[1], 16);
+                return Number.parseInt(match[1], 16);
             }
-            match = /^[0-9]+(?:\.[0-9]+)$/.exec(str);
+            match = /^[0-9]+(?:\.[0-9]+)?$/.exec(str);
             if (match) {
-                return Number.parse(match[0]);
+                return Number.parseFloat(match[0]);
             }
-            match = /^\([udlr]+\)$/i.exec(str);
+            match = /^\((?:[udlr]+|_)\)$/i.exec(str);
             if (match) {
                 let letters = match[0].toLowerCase().split("");
                 let up = letters.includes("u");

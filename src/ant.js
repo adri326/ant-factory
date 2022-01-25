@@ -1,4 +1,4 @@
-// import {Tile} from "./tile.js";
+import {DIRECTION_NAMES, DIRECTIONS} from "./tile.js";
 import {valid_coordinates} from "./stage.js";
 import {TILE_SIZE} from "./renderer.js";
 
@@ -15,20 +15,6 @@ export function register_ant_textures(tilemap) {
         tilemap.add_texture("ant_laser_" + n, {x: 9, y: 1 + n});
     }
 }
-
-const DIRECTION_NAMES = [
-    "up",
-    "right",
-    "down",
-    "left"
-];
-
-const DIRECTIONS = [
-    [0, -1],
-    [1, 0],
-    [0, 1],
-    [-1, 0]
-];
 
 const WALK_ANIMATION = [1, 0, 2, 0];
 const ANIMATION_FWD_MOD = 2;

@@ -2,6 +2,20 @@ const PASSABLE_IGNORE = 0;
 const PASSABLE_TRUE = 1;
 const PASSABLE_FALSE = -1;
 
+export const DIRECTION_NAMES = [
+    "up",
+    "right",
+    "down",
+    "left"
+];
+
+export const DIRECTIONS = [
+    [0, -1],
+    [1, 0],
+    [0, 1],
+    [-1, 0]
+];
+
 export class Tile {
     constructor(texture_name, passable = PASSABLE_IGNORE) {
         this.texture_name = texture_name;
@@ -22,6 +36,10 @@ export class Tile {
         } else {
             return was_passable;
         }
+    }
+
+    handle_laser(orientation) {
+        return [orientation, true];
     }
 }
 
@@ -324,7 +342,7 @@ export class Mirror extends Connected {
         let texture = `mirror_${orientation ? 0 : 3}`;
         super(texture, texture, parts, connections, true, PASSABLE_FALSE);
 
-        this.orientation = orientation;
+        this.orientation = !!orientation;
         this.laser = 0;
     }
 
@@ -333,7 +351,7 @@ export class Mirror extends Connected {
     }
 
     get laser_offset() {
-        return !!this.orientation == !!this.network_active ? 0 : 4;;
+        return !!this.orientation == !!this.network_active ? 0 : 4;
     }
 
     get_textures(animation) {
@@ -352,6 +370,11 @@ export class Mirror extends Connected {
         }
 
         return res;
+    }
+
+    handle_laser(orientation) {
+        this.laser |= (1 << orientation);
+        return [MIRROR_BOUNCE[orientation + this.laser_offset], false];
     }
 }
 
@@ -376,6 +399,101 @@ export class AntLasered extends Tile {
         }
 
         return res;
+    }
+
+    handle_laser(orientation) {
+        this.laser |= (1 << orientation);
+        return [-1, false];
+    }
+}
+
+export const BELT_TEXTURES = [];
+for (let dir = 0; dir < 4; dir++) {
+    BELT_TEXTURES.push(`belt_${DIRECTION_NAMES[dir]}`);
+    for (let step = 0; step < 3; step++) {
+        BELT_TEXTURES.push(`belt_${DIRECTION_NAMES[dir]}_${step}`);
+    }
+}
+
+export const BELT_ENDS = DIRECTION_NAMES.map(dir => `belt_end_${dir}`);
+
+export const BELT_SPEED = 125;
+
+export class Belt extends Tile {
+    constructor(direction, ends = 0) {
+        super(BELT_TEXTURES[direction * 4]);
+        this.direction = direction;
+        this.ends = ends;
+    }
+
+    get_textures(animation, last_tick) {
+        let res = [BELT_TEXTURES[this.direction * 4]];
+
+        let step = Math.floor(last_tick / BELT_SPEED) % 4;
+
+        if (step > 0) {
+            res.push(BELT_TEXTURES[this.direction * 4 + step]);
+        }
+
+        if (this.direction % 2 === 1) {
+            if (this.ends & 0b0010) { // Right end isn't connected
+                res.push(BELT_ENDS[1]);
+            } else if (this.ends & 0b1000) { // Left end isn't connected
+                res.push(BELT_ENDS[3]);
+            }
+        } else {
+            if (this.ends & 0b0001) { // Top end isn't connected
+                res.push(BELT_ENDS[0]);
+            } else if (this.ends & 0b0100) { // Bottom end isn't connected
+                res.push(BELT_ENDS[2]);
+            }
+        }
+
+        return res;
+    }
+
+    update(stage, x, y) {
+        let ant = stage.ants.find(ant => ant.x === x && ant.y === y);
+        if (ant && ant.can_move) {
+            ant.move(...DIRECTIONS[this.direction], false);
+        }
+    }
+}
+
+export const CLOCK_TEXTURES = ["clock"];
+for (let n = 1; n < 6; n++) {
+    CLOCK_TEXTURES.push(`clock_${n}`);
+}
+
+export class Clock extends Connected {
+    constructor(parts, connections, phase, frequency) {
+        super("clock", "clock", parts, connections);
+        this.phase = phase;
+        this.frequency = frequency;
+        this.active = this.phase === 0;
+    }
+
+    get is_input() {
+        return true;
+    }
+
+    get_textures() {
+        let res = this.get_parts_textures();
+
+        let step = Math.round(this.phase * 6 / this.frequency);
+
+        res.push("clock");
+
+        if (step > 0) {
+            res.push(CLOCK_TEXTURES[step]);
+        }
+
+        return res;
+    }
+
+    update(stage, x, y) {
+        this.phase = (this.phase + 1) % this.frequency;
+        this.active = this.phase === 0;
     }
 }
 
@@ -463,6 +581,28 @@ export function register_tile_textures(tilemap) {
             tilemap.add_texture(`ant_lasered_${direction}_${dy === 0 ? "low" : "high"}`, {x, y: y + dy});
         }
     }
+
+    for (let dx = 0; dx < 4; dx++) {
+        let end = ["left", "right", "down", "up"][dx];
+        tilemap.add_texture(`belt_end_${end}`, {x: 11 + dx, y: 8});
+        let dir = [1, 3, 2, 0][dx];
+
+        for (let dy = 0; dy < 4; dy++) {
+            if (dy === 0) {
+                tilemap.add_texture(`belt_${DIRECTION_NAMES[dir]}`, {x: 11 + dx, y: 9});
+            } else {
+                tilemap.add_texture(`belt_${DIRECTION_NAMES[dir]}_${dy - 1}`, {x: 11 + dx, y: 9 + dy});
+            }
+        }
+    }
+
+    for (let dx = 0; dx < 6; dx++) {
+        if (dx === 0) {
+            tilemap.add_texture(`clock`, {x: 5, y: 11});
+        } else {
+            tilemap.add_texture(`clock_${dx}`, {x: 5 + dx, y: 11});
+        }
+    }
 }
 
 export const CABLES = [];
@@ -534,6 +674,9 @@ TILES.set("and", (color, connections) => new And(CABLE_MAP.get(color), connectio
 TILES.set("mirror", (color, connections, orientation = false) => new Mirror(CABLE_MAP.get(color), connections, orientation));
 
 TILES.set("ant_lasered", () => new AntLasered());
+
+TILES.set("belt", (direction, connections) => new Belt(direction, connections));
+TILES.set("clock", (color, connections, phase, frequency) => new Clock(CABLE_MAP.get(color), connections, phase, frequency));
 
 export default function tile(name, ...data) {
     if (TILES.has(name)) {

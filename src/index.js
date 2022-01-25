@@ -25,10 +25,11 @@ function load_level(name) {
 load_level("0-1");
 load_level("0-2");
 load_level("0-3");
+load_level("0-4");
 
 const LEVELS = window.LEVELS = new Map(await Promise.all(level_promises));
 
-let stage = window.stage = LEVELS.get("0-1");
+let stage = window.stage = LEVELS.get("0-3");
 
 manager.current_draw_method = stage.draw.bind(stage);
 manager.current_click_method = stage.on_click.bind(stage);
@@ -68,6 +69,8 @@ function update(beforeupdate = () => {}) {
 
                 // Initiate warp:
                 block_update = true;
+                // Clear the update buffer ~ sounds scary but it *should* be okay
+                manager.updates = [];
                 manager.fade_out(() => {
                     let previous_stage = stage;
                     stage = LEVELS.get(level);
