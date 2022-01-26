@@ -1,6 +1,7 @@
 import {DIRECTION_NAMES, DIRECTIONS} from "./tile.js";
 import {valid_coordinates} from "./stage.js";
 import {TILE_SIZE} from "./renderer.js";
+import {ITEM_TEXTURES} from "./item.js";
 
 export function register_ant_textures(tilemap) {
     tilemap.add_texture("ant_shadow", {x: 4, y: 0});
@@ -20,6 +21,8 @@ const WALK_ANIMATION = [1, 0, 2, 0];
 const ANIMATION_FWD_MOD = 2;
 const ANIMATION_STEP = 1.0 / 8 / 2;
 const FWD_DISTANCE = 1/8;
+
+const ANT_ITEM = -2/16;
 
 const ANT_WALK_STEPS = 3;
 let ANT_WALK_TEXTURES = [];
@@ -42,14 +45,17 @@ function get_walk_texture(direction, step) {
 }
 
 export class Ant {
-    constructor(x, y, stage = null) {
+    constructor(x, y, stage = null, item = null) {
         this.x = x;
         this.y = y;
         this.direction = 0;
         this.moving = false;
         this.spiked = false;
 
+        this.item = item;
+
         this.stage = stage;
+        this.wait = 0;
     }
 
     draw(ctx, tilemap, vx, vy, tile_size, player, animation) {
@@ -76,6 +82,16 @@ export class Ant {
                 vy + dy * (forward_ant - 1.0),
                 tile_size
             );
+
+            if (this.item !== null) {
+                tilemap.draw(
+                    ctx,
+                    ITEM_TEXTURES.get(this.item),
+                    vx + dx * (forward_ant - 1.0),
+                    vy + dy * (forward_ant - 1.0) + ANT_ITEM * tile_size,
+                    tile_size
+                );
+            }
         } else if (this.spiked && animation > 0.0) {
             let step = Math.floor(animation * 4);
             if (step === 0) {
@@ -95,6 +111,9 @@ export class Ant {
         } else {
             tilemap.draw(ctx, player ? "ant_shadow_player" : "ant_shadow", vx, vy, tile_size);
             tilemap.draw(ctx, get_walk_texture(this.direction, 0), vx, vy, tile_size);
+            if (this.item !== null) {
+                tilemap.draw(ctx, ITEM_TEXTURES.get(this.item), vx, vy + ANT_ITEM * tile_size, tile_size);
+            }
         }
     }
 
@@ -146,8 +165,15 @@ export class Ant {
     }
 
     ai(stage, index) {
+        if (this.wait) this.wait--;
+
         let pheromone = stage.pheromone.get(this.x, this.y);
         if (!pheromone) return; // Do nothing
+
+        if (pheromone.wait && this.wait !== 1) {
+            if (this.wait === 0) this.wait = 2;
+            return;
+        }
 
         if (pheromone.direction >= 0 && !this.moving) {
             this.move(...DIRECTIONS[pheromone.direction], false);

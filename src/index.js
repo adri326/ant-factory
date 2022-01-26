@@ -29,6 +29,7 @@ load_level("0-1");
 load_level("0-2");
 load_level("0-3");
 load_level("0-4");
+load_level("0-5");
 
 const LEVELS = window.LEVELS = new Map(await Promise.all(level_promises));
 
@@ -85,6 +86,11 @@ function update(beforeupdate = () => {}) {
                     }
                     manager.current_draw_method = stage.draw.bind(stage);
                     manager.current_click_method = stage.on_click.bind(stage);
+                    auto_play = false;
+
+                    previous_stage.hud = NO_HUD;
+                    stage.hud = NO_HUD;
+                    pheromone_hud.active = false;
 
                     manager.fade_in(() => block_update = false);
                 });
@@ -239,6 +245,7 @@ pheromone_hud.set_component(0, 2, "hud_pheromone_wait", () => {
 function toggle_pheromone() {
     stage.toggle_hud(PHEROMONE_HUD);
     pheromone_hud.active = stage.hud === PHEROMONE_HUD;
+    auto_pheromone = auto_pheromone && pheromone_hud.active;
 }
 
 manager.huds.push(main_hud);

@@ -484,12 +484,12 @@ export class Stage {
             res.networks.push(Network.from(res, x, y, z));
         }
 
-        function ant(player, x, y) {
+        function ant(player, x, y, item = null) {
             if (player) {
                 res.player_index = res.ants.length;
             }
 
-            res.ants.push(new Ant(+x, +y, res));
+            res.ants.push(new Ant(+x, +y, res, item));
         }
 
         function warp(x, y, level, tx = null, ty = null) {

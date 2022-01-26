@@ -685,15 +685,32 @@ export class Crane extends Connected {
             let dx = this.state ? 1 : -1;
             let dy = 0;
 
+            for (let ant of stage.ants) {
+                if (ant.x === x + dx && ant.y === y + dy && ant.item === null && !ant.moving) {
+                    ant.item = this.item;
+                    this.item = null;
+                    return;
+                }
+            }
+
             for (let tile of stage.tiles.get(x + dx, y + dy)) {
                 if (tile.accepts_item(dx, dy)) {
                     tile.give_item(this.item, 0, 0);
                     this.item = null;
+                    break;
                 }
             }
         } else if (this.network_active && this.state == this.direction && this.item === null) {
             let dx = this.state ? 1 : -1;
             let dy = 0;
+
+            for (let ant of stage.ants) {
+                if (ant.x === x + dx && ant.y === y + dy && ant.item !== null && !ant.moving) {
+                    this.item = ant.item;
+                    ant.item = null;
+                    return;
+                }
+            }
 
             for (let tile of stage.tiles.get(x + dx, y + dy)) {
                 if (tile.item) {
@@ -730,7 +747,11 @@ export class Distributor extends Connected {
         return true;
     }
 
-    get_textures(animation) {
+    get_textures() {
+        return [];
+    }
+
+    get_overlay_textures(animation) {
         return [DISTRIBUTOR_TEXTURES[this.direction]];
     }
 
@@ -792,6 +813,122 @@ export class WallCollector extends Collector {
 
     is_passable(was_passable) {
         return false;
+    }
+}
+
+export const MACHINE_SMOKE = [
+    "machine_smoke_0",
+    "machine_smoke_1",
+    "machine_smoke_2",
+];
+
+// This thing is quite hacky when it comes to rendering, but it looks soooo smooth :>
+export class Machine extends Connected {
+    constructor(parts, connections, target_item) {
+        super("machine_off", "machine_off", parts, connections, true, PASSABLE_FALSE);
+        this.left_item = null;
+        this.right_item = null;
+        this.item_move = [false, false];
+        this.target_item = target_item;
+        this.processed = false;
+    }
+
+    draw(ctx, tilemap, vx, vy, tile_size, animation, last_tick) {
+        if (this.item_move[0]) {
+            let vx2 = vx;
+            let vy2 = vy - tile_size * 2/16;
+            let dx = 1;
+
+            vx2 -= Math.round(dx * tile_size * (1 - animation));
+
+            tilemap.draw(ctx, ITEM_TEXTURES.get(this.left_item), vx2, vy2, tile_size, animation);
+        }
+    }
+
+    get_overlay_textures(animation) {
+        let res = ["machine_off"];
+
+        if (this.network_active) {
+            res.push("machine_on");
+            let smoke = Math.floor(animation * 4);
+            if (smoke < 3 && this.left_item && this.right_item && !this.processed) {
+                res.push(MACHINE_SMOKE[2 - smoke]);
+            }
+        }
+
+        return res;
+    }
+
+    draw_overlay(ctx, tilemap, vx, vy, tile_size, animation, last_tick) {
+        if (this.item_move[1]) {
+            let vx2 = vx;
+            let vy2 = vy - tile_size * 2/16;
+            let dx = -1;
+
+            vx2 -= Math.round(dx * tile_size * (1 - animation));
+
+            tilemap.draw(ctx, ITEM_TEXTURES.get(this.right_item), vx2, vy2, tile_size, animation);
+        }
+
+        for (let texture of this.get_overlay_textures(animation, last_tick)) {
+            tilemap.draw(ctx, texture, vx, vy, tile_size, animation);
+        }
+    }
+
+    update(stage, x, y) {
+        if (this.processed) {
+            for (let tile of stage.tiles.get(x, y - 1)) {
+                if (tile.accepts_item(0, -1)) {
+                    tile.give_item(this.target_item, 0, -1);
+                    this.left_item = null;
+                    this.right_item = null;
+                    this.processed = false;
+                }
+            }
+        }
+    }
+
+    cleanup() {
+        if (this.network_active && this.left_item && this.right_item) this.processed = true;
+        this.item_move = [false, false];
+    }
+}
+
+export class MachineCollector extends Collector {
+    draw() {}
+
+    draw_overlay(ctx, tilemap, vx, vy, tile_size, animation, last_tick) {
+        super.draw(ctx, tilemap, vx, vy, tile_size, animation, last_tick);
+    }
+
+    update(stage, x, y) {
+        if (this.direction === 1) {
+            let machine = stage.tiles.get(x - 1, y).find(tile => tile instanceof Machine);
+            if (!machine || machine.right_item) return;
+
+            for (let tile of stage.tiles.get(x, y)) {
+                if (!tile.item || tile.item_move?.[0] || tile.item_move?.[1]) continue;
+                if (this.target_item === null || tile.item === this.target_item) {
+                    this.active = true;
+                    machine.right_item = tile.item;
+                    machine.item_move[1] = true;
+                }
+                tile.item = null;
+            }
+        } else {
+            let machine = stage.tiles.get(x + 1, y).find(tile => tile instanceof Machine);
+            if (!machine || machine.left_item) return;
+
+            for (let tile of stage.tiles.get(x, y)) {
+                if (!tile.item || tile.item_move?.[0] || tile.item_move?.[1]) continue;
+                if (this.target_item === null || tile.item === this.target_item) {
+                    this.active = true;
+                    machine.left_item = tile.item;
+                    machine.item_move[0] = true;
+                }
+                tile.item = null;
+            }
+        }
     }
 }
 
@@ -918,6 +1055,12 @@ export function register_tile_textures(tilemap) {
     for (let dx = 0; dx < 4; dx++) {
         tilemap.add_texture(`distributor_${DIRECTION_NAMES[dx]}`, {x: 1 + dx, y: 12});
     }
+
+    tilemap.add_texture("machine_off", {x: 3, y: 10, height: 2, dy: -1});
+    tilemap.add_texture("machine_on", {x: 4, y: 11});
+    for (let dx = 0; dx < 3; dx++) {
+        tilemap.add_texture(`machine_smoke_${dx}`, {x: dx, y: 10, dy: -1});
+    }
 }
 
 export const CABLES = [];
@@ -995,12 +1138,16 @@ TILES.set("mirror", (color, connections, orientation = false) => new Mirror(CABL
 
 TILES.set("ant_lasered", () => new AntLasered());
 
-TILES.set("belt", (direction, connections) => new Belt(direction, connections));
 TILES.set("clock", (color, connections, phase, frequency) => new Clock(CABLE_MAP.get(color), connections, phase, frequency));
+
+TILES.set("belt", (direction, connections) => new Belt(direction, connections));
 TILES.set("crane", (color, connections, direction) => new Crane(CABLE_MAP.get(color), connections, direction));
 TILES.set("distributor", (color, connections, direction, item) => new Distributor(CABLE_MAP.get(color), connections, direction, item));
 TILES.set("collector", (color, connections, direction, item = null) => new Collector(CABLE_MAP.get(color), connections, direction, item));
 TILES.set("wall_collector", (color, connections, item = null) => new WallCollector(CABLE_MAP.get(color), connections, item));
+TILES.set("machine_collector", (color, connections, direction, item = null) => new MachineCollector(CABLE_MAP.get(color), connections, direction, item));
+
+TILES.set("machine", (color, connections, target_item) => new Machine(CABLE_MAP.get(color), connections, target_item));
 
 export default function tile(name, ...data) {
     if (TILES.has(name)) {

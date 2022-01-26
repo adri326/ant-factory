@@ -57,7 +57,7 @@ set 4 1 rs blue (u)
 set 4 0 cable blue (ld)
 set 3 0 door blue (r)
 network 3 0
-
+warp 3 0 0-5 0 6
 
 ant 5 2
 player 1 7
