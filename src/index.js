@@ -47,7 +47,7 @@ function scheduleUpdate() {
     update_timeout = setTimeout(() => {
         update_timeout = null;
         update();
-    }, 1000);
+    }, 250);
 }
 
 let auto_pheromone = false;

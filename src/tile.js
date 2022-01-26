@@ -233,6 +233,28 @@ export class And extends Connected {
     }
 }
 
+export class RSLatch extends Connected {
+    constructor(parts, connections, state = false) {
+        super("rs_on", "rs_off", parts, connections);
+        this.active = state;
+    }
+
+    get is_input() {
+        return true;
+    }
+
+    update(stage, x, y) {
+        for (let tile of stage.tiles.get(x, y)) {
+            if (tile === this) continue;
+            if (tile instanceof Connected && tile.network_active) {
+                console.log(tile);
+                if (tile.connections & 0b1000) this.active = false; // R
+                if (tile.connections & 0b0010) this.active = true; // S
+            }
+        }
+    }
+}
+
 const SPIKE_TEXTURES = [
     "spike_0",
     "spike_1",
@@ -597,21 +619,15 @@ export const CRANE_OFFSET = [
 
 export class Crane extends Connected {
     constructor(parts, connections, direction) {
-        super("crane_base_off", "crane_base_on", parts, connections, true, PASSABLE_FALSE);
+        super("crane_base_on", "crane_base_off", parts, connections, true, PASSABLE_FALSE);
 
-        this.direction = direction;
+        this.direction = !!direction;
+        this.state = !!direction;
         this.item = null;
-        this.moved_item = false;
     }
 
     get is_output() {
         return true;
-    }
-
-    accepts_item(dx, dy) {
-        if (dy !== 0) return false;
-
-        return this.item === null && (dx === 1) == !this.direction;
     }
 
     get_textures(animation) {
@@ -629,11 +645,11 @@ export class Crane extends Connected {
     get_step(animation) {
         let res = 0;
 
-        if (this.network_active && animation > 0.0) res = Math.floor(animation * 3) + 1;
+        if (this.should_rotate && animation > 0.0) res = Math.floor(animation * 3) + 1;
 
         res = Math.max(Math.min(res, 3), 0);
 
-        if (this.direction) {
+        if (this.state) {
             res = 3 - res;
         }
 
@@ -665,30 +681,117 @@ export class Crane extends Connected {
     }
 
     update(stage, x, y, index) {
-        if (this.moved_item && this.item !== null) {
-            let dx = this.direction ? 1 : -1;
+        if (this.state != this.direction && this.item !== null) {
+            let dx = this.state ? 1 : -1;
             let dy = 0;
 
             for (let tile of stage.tiles.get(x + dx, y + dy)) {
                 if (tile.accepts_item(dx, dy)) {
                     tile.give_item(this.item, 0, 0);
                     this.item = null;
-                    this.moved_item = false;
+                }
+            }
+        } else if (this.network_active && this.state == this.direction && this.item === null) {
+            let dx = this.state ? 1 : -1;
+            let dy = 0;
+
+            for (let tile of stage.tiles.get(x + dx, y + dy)) {
+                if (tile.item) {
+                    this.item = tile.item;
+                    tile.item = null;
+                    break;
                 }
             }
         }
     }
 
+    get should_rotate() {
+        return (this.state == this.direction) == !!this.item;
+    }
+
     cleanup() {
+        if (this.should_rotate) {
+            this.state = !this.state;
+        }
+    }
+}
+
+export const DISTRIBUTOR_TEXTURES = DIRECTION_NAMES.map(x => `distributor_${x}`);
+
+export class Distributor extends Connected {
+    constructor(parts, connections, direction, item) {
+        let texture = `distributor_${DIRECTION_NAMES[direction]}`;
+        super(texture, texture, parts, connections);
+        this.direction = direction;
+        this.item = item;
+    }
+
+    get is_output() {
+        return true;
+    }
+
+    get_textures(animation) {
+        return [DISTRIBUTOR_TEXTURES[this.direction]];
+    }
+
+    update(stage, x, y) {
         if (this.network_active) {
-            this.direction = !this.direction;
-            if (this.item !== null) this.moved_item = true;
+            for (let tile of stage.tiles.get(x, y)) {
+                if (tile.accepts_item(0, 0)) {
+                    tile.give_item(this.item, ...DIRECTIONS[this.direction].map(v => 0.2 * v));
+                }
+            }
+        }
+    }
+}
+
+export class Collector extends Connected {
+    constructor(parts, connections, direction, target_item = null) {
+        let texture = `distributor_${DIRECTION_NAMES[direction]}`;
+        super(texture, texture, parts, connections);
+        this.direction = direction;
+        this.target_item = target_item;
+        this.active = false;
+    }
+
+    get is_input() {
+        return true;
+    }
+
+    get_textures(animation) {
+        return [DISTRIBUTOR_TEXTURES[this.direction]];
+    }
+
+    update(stage, x, y) {
+        for (let tile of stage.tiles.get(x, y)) {
+            if (!tile.item) continue;
+            if (this.target_item === null || tile.item === this.target_item) {
+                this.active = true;
+            }
+            tile.item = null;
         }
     }
 
-    give_item(item, dx, dy) {
-        this.item = item;
-        this.moved_item = false;
+    cleanup() {
+        if (this.active) this.active = false;
+    }
+}
+
+export class WallCollector extends Collector {
+    constructor(parts, connections, target_item = null) {
+        super(parts, connections, 0, target_item);
+    }
+
+    get_textures(animation) {
+        return this.get_parts_textures();
+    }
+
+    get_overlay_textures(animation) {
+        return ["wall_distributor"];
+    }
+
+    is_passable(was_passable) {
+        return false;
     }
 }
 
@@ -728,6 +831,8 @@ export function register_tile_textures(tilemap) {
 
     tilemap.add_texture("and_off", {x: 0, y: 6});
     tilemap.add_texture("and_on", {x: 1, y: 6});
+    tilemap.add_texture("rs_off", {x: 0, y: 7});
+    tilemap.add_texture("rs_on", {x: 1, y: 7});
 
     tilemap.add_texture("fence", {x: 0, y: 13});
     tilemap.add_texture("fence_up", {x: 1, y: 13});
@@ -808,6 +913,11 @@ export function register_tile_textures(tilemap) {
     tilemap.add_texture(`crane_1`, {x: 5, y: 13, width: 2, dx: -0.5, dy: -4/16});
     tilemap.add_texture(`crane_2`, {x: 7, y: 13, width: 2, dx: -0.5, dy: -4/16});
     tilemap.add_texture(`crane_3`, {x: 7, y: 12, width: 2, dx: -0.5, dy: -4/16});
+
+    tilemap.add_texture(`wall_distributor`, {x: 0, y: 12});
+    for (let dx = 0; dx < 4; dx++) {
+        tilemap.add_texture(`distributor_${DIRECTION_NAMES[dx]}`, {x: 1 + dx, y: 12});
+    }
 }
 
 export const CABLES = [];
@@ -873,11 +983,14 @@ tile_component("door", Door);
 TILES.set("passage", (open) => new Passage(open));
 
 TILES.set("cable", (color, connections) => Connected.from(TILE_CABLES_MAP.get(color), connections));
+TILES.set("and", (color, connections) => new And(CABLE_MAP.get(color), connections));
+TILES.set("rs", (color, connections, state = false) => new RSLatch(CABLE_MAP.get(color), connections, state));
+
 TILES.set("fence", (connections) => Connected.from(TILE_FENCE, connections));
 TILES.set("spike", (jammed = false) => new Spike(jammed));
 
 TILES.set("laser", (color, connections, orientation = 0) => new LaserMachine(CABLE_MAP.get(color), connections, orientation));
-TILES.set("and", (color, connections) => new And(CABLE_MAP.get(color), connections));
+
 TILES.set("mirror", (color, connections, orientation = false) => new Mirror(CABLE_MAP.get(color), connections, orientation));
 
 TILES.set("ant_lasered", () => new AntLasered());
@@ -885,6 +998,9 @@ TILES.set("ant_lasered", () => new AntLasered());
 TILES.set("belt", (direction, connections) => new Belt(direction, connections));
 TILES.set("clock", (color, connections, phase, frequency) => new Clock(CABLE_MAP.get(color), connections, phase, frequency));
 TILES.set("crane", (color, connections, direction) => new Crane(CABLE_MAP.get(color), connections, direction));
+TILES.set("distributor", (color, connections, direction, item) => new Distributor(CABLE_MAP.get(color), connections, direction, item));
+TILES.set("collector", (color, connections, direction, item = null) => new Collector(CABLE_MAP.get(color), connections, direction, item));
+TILES.set("wall_collector", (color, connections, item = null) => new WallCollector(CABLE_MAP.get(color), connections, item));
 
 export default function tile(name, ...data) {
     if (TILES.has(name)) {

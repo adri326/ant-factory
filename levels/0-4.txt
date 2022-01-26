@@ -1,27 +1,63 @@
-8x8
+8x9
 
 row 0 wall
-fill 0..8 1..7 ground
-row 7 edge
+fill 0..8 1..8 ground
+row 8 edge
+set 1 8 ground
+set 1 8 passage 0-3/1/0
+warp 1 8 0-3 1 1
 
-set 2 3 belt 0 (u)
-set 2 4 belt 0 (d)
-set 2 2 belt 1 (l)
-set 3 2 belt 1 (r)
-set 4 2 belt 2 (u)
-set 4 3 belt 2 (d)
-set 4 4 belt 3 (r)
-set 3 4 belt 3 (l)
+set 0 1 spike
+set 1 1 spike 1
 
-set 5 4 crane blue (d) 0
-set 5 5 clock blue (u) 0 2
+set 3 3 crane red (d) 0
+set 3 4 cable red (du)
+set 3 5 cable red (du)
+set 3 6 button red (u)
+network 3 3
+set 4 3 belt 1 (l)
+set 5 3 belt 1 (r)
+
+set 0 4 belt 0 (u)
+set 0 5 belt 0 (d)
+set 0 3 belt 1 (l)
+set 1 3 belt 1 (r)
+set 2 3 belt 2 (u)
+set 2 4 belt 2 (d)
+set 4 5 belt 3 (r)
+set 3 5 belt 3 (_)
+set 2 5 belt 3 (_)
+set 1 5 belt 3 (l)
+
+set 5 5 crane blue (u) 1
+set 5 4 cable blue (dr)
+set 6 4 clock blue (l) 1 2
 network 5 5
 
-set 6 4 belt 3 (l)
-set 7 4 belt 3 (r)
-item 7 4 pipe
+set 6 5 belt 3 (l)
+set 7 5 belt 3 (r)
+item 7 5 pipe
 
-ant 2 2
-ant 4 3
+set 7 5 distributor blue (d) 3 pipe
+set 7 6 cable blue (ul)
+set 6 6 button blue (r)
+network 7 5
 
-player 7 6
+set 6 0 belt 0 (u)
+set 6 1 belt 0 (_)
+set 6 2 belt 0 (_)
+set 6 3 belt 0 (d)
+set 6 0 wall_collector green (l) pipe
+set 5 0 cable green (rd)
+set 5 1 cable green (ul)
+set 4 1 cable green (r)
+network 6 0
+
+set 4 1 rs blue (u)
+set 4 0 cable blue (ld)
+set 3 0 door blue (r)
+network 3 0
+
+
+ant 5 2
+player 1 7

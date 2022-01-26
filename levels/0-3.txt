@@ -52,5 +52,7 @@ set 3 7 button red (r)
 set 4 7 laser red (l)
 network 3 7
 
+warp 1 0 0-4 1 6
+
 player 1 7
 ant 7 7
