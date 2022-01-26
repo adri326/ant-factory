@@ -13,6 +13,13 @@ set 4 3 belt 2 (d)
 set 4 4 belt 3 (r)
 set 3 4 belt 3 (l)
 
+set 5 4 crane blue (d) 0
+set 5 5 clock blue (u) 0 2
+network 5 5
+
+set 6 4 belt 3 (l)
+set 7 4 belt 3 (r)
+item 7 4 pipe
 
 ant 2 2
 ant 4 3

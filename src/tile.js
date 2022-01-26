@@ -1,3 +1,5 @@
+import {ITEM_TEXTURES} from "./item.js";
+
 const PASSABLE_IGNORE = 0;
 const PASSABLE_TRUE = 1;
 const PASSABLE_FALSE = -1;
@@ -26,7 +28,25 @@ export class Tile {
         return [this.texture_name];
     }
 
+    draw(ctx, tilemap, vx, vy, tile_size, animation, last_tick) {
+        for (let texture of this.get_textures(animation, last_tick)) {
+            tilemap.draw(ctx, texture, vx, vy, tile_size, animation);
+        }
+    }
+
+    get_overlay_textures() {
+        return [];
+    }
+
+    draw_overlay(ctx, tilemap, vx, vy, tile_size, animation, last_tick) {
+        for (let texture of this.get_overlay_textures(animation, last_tick)) {
+            tilemap.draw(ctx, texture, vx, vy, tile_size, animation);
+        }
+    }
+
     update(stage, x, y, index) {}
+
+    cleanup(stage, x, y, index) {}
 
     is_passable(was_passable) {
         if (this.passable === PASSABLE_TRUE) {
@@ -40,6 +60,18 @@ export class Tile {
 
     handle_laser(orientation) {
         return [orientation, true];
+    }
+
+    accepts_item(dx, dy) {
+        return false;
+    }
+
+    give_item(item, dx, dy) {}
+}
+
+export class LaserBlocker extends Tile {
+    handle_laser(orientation) {
+        return [-1, false];
     }
 }
 
@@ -376,6 +408,10 @@ export class Mirror extends Connected {
         this.laser |= (1 << orientation);
         return [MIRROR_BOUNCE[orientation + this.laser_offset], false];
     }
+
+    cleanup() {
+        this.laser = 0;
+    }
 }
 
 export class AntLasered extends Tile {
@@ -405,6 +441,10 @@ export class AntLasered extends Tile {
         this.laser |= (1 << orientation);
         return [-1, false];
     }
+
+    cleanup() {
+        this.laser = 0;
+    }
 }
 
 export const BELT_TEXTURES = [];
@@ -424,6 +464,14 @@ export class Belt extends Tile {
         super(BELT_TEXTURES[direction * 4]);
         this.direction = direction;
         this.ends = ends;
+
+        this.item = null;
+
+        this.item_move = [0, 0];
+    }
+
+    accepts_item(dx, dy) {
+        return this.item === null;
     }
 
     get_textures(animation, last_tick) {
@@ -452,11 +500,53 @@ export class Belt extends Tile {
         return res;
     }
 
+    draw(ctx, tilemap, vx, vy, tile_size, animation, last_tick) {
+        for (let texture of this.get_textures(animation, last_tick)) {
+            tilemap.draw(ctx, texture, vx, vy, tile_size, animation);
+        }
+    }
+
+    draw_overlay(ctx, tilemap, vx, vy, tile_size, animation, last_tick) {
+        if (this.item !== null) {
+            let vx2 = vx;
+            let vy2 = vy - tile_size * 2/16;
+            let [dx, dy] = this.item_move;
+
+            if (dx !== 0 || dy !== 0) {
+                vx2 -= Math.round(dx * tile_size * (1 - animation));
+                vy2 -= Math.round(dy * tile_size * (1 - animation));
+            }
+
+            tilemap.draw(ctx, ITEM_TEXTURES.get(this.item), vx2, vy2, tile_size, animation);
+        }
+    }
+
     update(stage, x, y) {
+        let [dx, dy] = DIRECTIONS[this.direction];
+
         let ant = stage.ants.find(ant => ant.x === x && ant.y === y);
         if (ant && ant.can_move) {
-            ant.move(...DIRECTIONS[this.direction], false);
+            ant.move(dx, dy, false);
         }
+
+        if (this.item !== null && this.item_move[0] === 0 && this.item_move[1] === 0) {
+            for (let tile of stage.tiles.get(x + dx, y + dy)) {
+                if (tile.accepts_item(dx, dy)) {
+                    tile.give_item(this.item, dx, dy);
+                    this.item = null;
+                    break;
+                }
+            }
+        }
+    }
+
+    cleanup() {
+        this.item_move = [0, 0];
+    }
+
+    give_item(item, dx, dy) {
+        this.item = item;
+        this.item_move = [dx, dy];
     }
 }
 
@@ -497,6 +587,111 @@ export class Clock extends Connected {
     }
 }
 
+export const CRANE_TEXTURES = [0, 1, 2, 3].map(x => `crane_${x}`);
+export const CRANE_OFFSET = [
+    [-29, -5],
+    [-25, -3],
+    [ -7, -3],
+    [ -3, -5]
+].map(([x, y]) => [x / 16 + 1, y / 16]);
+
+export class Crane extends Connected {
+    constructor(parts, connections, direction) {
+        super("crane_base_off", "crane_base_on", parts, connections, true, PASSABLE_FALSE);
+
+        this.direction = direction;
+        this.item = null;
+        this.moved_item = false;
+    }
+
+    get is_output() {
+        return true;
+    }
+
+    accepts_item(dx, dy) {
+        if (dy !== 0) return false;
+
+        return this.item === null && (dx === 1) == !this.direction;
+    }
+
+    get_textures(animation) {
+        let res = this.get_parts_textures();
+
+        res.push("crane_base_off");
+
+        if (this.network_active) {
+            res.push("crane_base_on");
+        }
+
+        return res;
+    }
+
+    get_step(animation) {
+        let res = 0;
+
+        if (this.network_active && animation > 0.0) res = Math.floor(animation * 3) + 1;
+
+        res = Math.max(Math.min(res, 3), 0);
+
+        if (this.direction) {
+            res = 3 - res;
+        }
+
+        return res;
+    }
+
+    get_overlay_textures(animation) {
+        let res = [];
+
+        let step = this.get_step(animation);
+
+        res.push(CRANE_TEXTURES[step]);
+
+        return res;
+    }
+
+    draw_overlay(ctx, tilemap, vx, vy, tile_size, animation, last_tick) {
+        if (this.item !== null) {
+            let step = this.get_step(animation);
+            let vx2 = vx + CRANE_OFFSET[step][0] * tile_size;
+            let vy2 = vy + CRANE_OFFSET[step][1] * tile_size;
+
+            tilemap.draw(ctx, ITEM_TEXTURES.get(this.item), vx2, vy2, tile_size, animation);
+        }
+
+        for (let texture of this.get_overlay_textures(animation, last_tick)) {
+            tilemap.draw(ctx, texture, vx, vy, tile_size, animation);
+        }
+    }
+
+    update(stage, x, y, index) {
+        if (this.moved_item && this.item !== null) {
+            let dx = this.direction ? 1 : -1;
+            let dy = 0;
+
+            for (let tile of stage.tiles.get(x + dx, y + dy)) {
+                if (tile.accepts_item(dx, dy)) {
+                    tile.give_item(this.item, 0, 0);
+                    this.item = null;
+                    this.moved_item = false;
+                }
+            }
+        }
+    }
+
+    cleanup() {
+        if (this.network_active) {
+            this.direction = !this.direction;
+            if (this.item !== null) this.moved_item = true;
+        }
+    }
+
+    give_item(item, dx, dy) {
+        this.item = item;
+        this.moved_item = false;
+    }
+}
+
 export function register_tile_textures(tilemap) {
     tilemap.add_texture("wall", {
         x: 0, y: 0,
@@ -506,6 +701,8 @@ export function register_tile_textures(tilemap) {
 
     tilemap.add_texture("ground", {x: 2, y: 1});
     tilemap.add_texture("edge", {x: 2, y: 2});
+    tilemap.add_texture("void", {x: 2, y: 3});
+    tilemap.add_texture("empty", {x: 2, y: 0});
 
     for (let dx = 0; dx < 3; dx++) {
         let color = CABLE_NAMES[dx];
@@ -603,6 +800,14 @@ export function register_tile_textures(tilemap) {
             tilemap.add_texture(`clock_${dx}`, {x: 5 + dx, y: 11});
         }
     }
+
+    tilemap.add_texture(`crane_base_off`, {x: 9, y: 12});
+    tilemap.add_texture(`crane_base_on`, {x: 10, y: 12});
+
+    tilemap.add_texture(`crane_0`, {x: 5, y: 12, width: 2, dx: -0.5, dy: -4/16});
+    tilemap.add_texture(`crane_1`, {x: 5, y: 13, width: 2, dx: -0.5, dy: -4/16});
+    tilemap.add_texture(`crane_2`, {x: 7, y: 13, width: 2, dx: -0.5, dy: -4/16});
+    tilemap.add_texture(`crane_3`, {x: 7, y: 12, width: 2, dx: -0.5, dy: -4/16});
 }
 
 export const CABLES = [];
@@ -639,7 +844,8 @@ export const FENCE = [
 export const TILE_CABLES = CABLES.map((c, i) => new Connected(`cable_${CABLE_NAMES[i]}_on`, `cable_${CABLE_NAMES[i]}`, c, 0, false));
 export const TILE_CABLES_MAP = new Map(TILE_CABLES.map((t, i) => [CABLE_NAMES[i], t]));
 
-export const TILE_WALL = new Tile("wall", PASSABLE_FALSE);
+export const TILE_WALL = new LaserBlocker("wall", PASSABLE_FALSE);
+export const TILE_LASER_BLOCKER = new LaserBlocker("", PASSABLE_FALSE);
 export const TILE_EDGE = new Tile("edge", PASSABLE_FALSE);
 export const TILE_GROUND = new Tile("ground", PASSABLE_TRUE);
 export const TILE_FENCE = new Connected("fence", "fence", FENCE, 0, false, PASSABLE_FALSE);
@@ -657,6 +863,7 @@ function tile_component(name, tile_class) {
 }
 
 tile_singleton("wall", TILE_WALL);
+tile_singleton("laser_blocker", TILE_LASER_BLOCKER);
 tile_singleton("edge", TILE_EDGE);
 tile_singleton("ground", TILE_GROUND);
 
@@ -677,6 +884,7 @@ TILES.set("ant_lasered", () => new AntLasered());
 
 TILES.set("belt", (direction, connections) => new Belt(direction, connections));
 TILES.set("clock", (color, connections, phase, frequency) => new Clock(CABLE_MAP.get(color), connections, phase, frequency));
+TILES.set("crane", (color, connections, direction) => new Crane(CABLE_MAP.get(color), connections, direction));
 
 export default function tile(name, ...data) {
     if (TILES.has(name)) {

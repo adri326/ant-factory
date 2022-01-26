@@ -171,9 +171,7 @@ export class Stage {
 
                 let stack = this.tiles.get(x, y);
                 for (let tile of stack) {
-                    for (let texture of tile.get_textures(animation, this.last_tick)) {
-                        this.tilemap.draw(ctx, texture, vx, vy, tile_size, animation);
-                    }
+                    tile.draw(ctx, this.tilemap, vx, vy, tile_size, animation, this.last_tick);
                 }
             }
         }
@@ -191,6 +189,11 @@ export class Stage {
             let vy = get_vy(y);
             for (let x = 0; x < this.width; x++) {
                 let vx = get_vx(x);
+
+                let stack = this.tiles.get(x, y);
+                for (let tile of stack) {
+                    tile.draw_overlay(ctx, this.tilemap, vx, vy, tile_size, animation, this.last_tick);
+                }
 
                 let laser = this.laser.get(x, y);
                 if (laser !== NO_LASER) {
@@ -331,10 +334,9 @@ export class Stage {
 
         for (let y = 0; y < this.height; y++) {
             for (let x = 0; x < this.width; x++) {
-                for (let tile of this.tiles.get(x, y)) {
-                    if (tile instanceof Mirror || tile instanceof AntLasered) {
-                        tile.laser = 0;
-                    }
+                let stack = this.tiles.get(x, y);
+                for (let z = 0; z < stack.length; z++) {
+                    stack[z].cleanup(stage, x, y, z);
                 }
             }
         }
@@ -494,6 +496,17 @@ export class Stage {
             res.warps.push([+x, +y, level, tx === null ? null : +tx, ty === null ? null : +ty]);
         }
 
+        function item(x, y, name) {
+            x = +x;
+            y = +y;
+            for (let tile of res.tiles.get(x, y)) {
+                if (tile.item === null) {
+                    tile.item = name;
+                    break;
+                }
+            }
+        }
+
         for (let line of lines) {
             let args = line.split(" ");
             if (!args.length) continue;
@@ -525,6 +538,10 @@ export class Stage {
 
                 case "warp":
                     warp(...args.slice(1));
+                    break;
+
+                case "item":
+                    item(...args.slice(1));
                     break;
             }
         }

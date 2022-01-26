@@ -1,10 +1,12 @@
 import {CanvasManager, Tilemap} from "./renderer.js";
 import {Stage, PHEROMONE_HUD} from "./stage.js";
 import tile from "./tile.js";
+import {register_tile_textures} from "./tile.js";
 import {Ant, register_ant_textures} from "./ant.js";
 import {Network} from "./network.js";
 import {Pheromone, register_pheromone_textures} from "./pheromone.js";
 import {register_hud_textures, Hud} from "./hud.js";
+import {register_item_textures} from "./item.js";
 
 const manager = new CanvasManager(document.getElementById("canvas"));
 window.manager = manager;
@@ -13,9 +15,10 @@ const tilemap = await Tilemap.from_url("resources/sprites.png");
 window.tilemap = tilemap;
 
 register_ant_textures(tilemap);
-tile.register_tile_textures(tilemap);
+register_tile_textures(tilemap);
 register_pheromone_textures(tilemap);
 register_hud_textures(tilemap);
+register_item_textures(tilemap);
 
 let level_promises = [];
 function load_level(name) {
@@ -29,7 +32,7 @@ load_level("0-4");
 
 const LEVELS = window.LEVELS = new Map(await Promise.all(level_promises));
 
-let stage = window.stage = LEVELS.get("0-3");
+let stage = window.stage = LEVELS.get("0-4");
 
 manager.current_draw_method = stage.draw.bind(stage);
 manager.current_click_method = stage.on_click.bind(stage);
