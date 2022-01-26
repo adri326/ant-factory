@@ -35,4 +35,8 @@ ant 2 5
 ant 3 6
 ant 4 6
 
+set 0 6 help "This one ant wasn't so lucky... thankfully it now blocks the deadly spikes." 1
+set 2 5 help "More spikes separate us from the buttons, you will need to sacrifice another ant."
+set 3 2 help "Note: You can click on an ant to take control of it."
+
 warp 0 0 0-3 1 7

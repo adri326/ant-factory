@@ -1,5 +1,5 @@
 import {CanvasManager, Tilemap} from "./renderer.js";
-import {Stage, PHEROMONE_HUD} from "./stage.js";
+import {Stage, NO_HUD, PHEROMONE_HUD} from "./stage.js";
 import tile from "./tile.js";
 import {register_tile_textures} from "./tile.js";
 import {Ant, register_ant_textures} from "./ant.js";
@@ -30,10 +30,12 @@ load_level("0-2");
 load_level("0-3");
 load_level("0-4");
 load_level("0-5");
+load_level("0-6");
 
 const LEVELS = window.LEVELS = new Map(await Promise.all(level_promises));
 
-let stage = window.stage = LEVELS.get("0-4");
+let current_level = "0-1";
+let stage = window.stage = LEVELS.get(current_level);
 
 manager.current_draw_method = stage.draw.bind(stage);
 manager.current_click_method = stage.on_click.bind(stage);
@@ -77,7 +79,8 @@ function update(beforeupdate = () => {}) {
                 manager.updates = [];
                 manager.fade_out(() => {
                     let previous_stage = stage;
-                    stage = LEVELS.get(level);
+                    window.stage = stage = LEVELS.get(level);
+                    current_level = level;
                     let player = stage.current_ant();
                     if (tx !== null && ty !== null && player) {
                         player.x = tx;
@@ -147,7 +150,7 @@ window.addEventListener("keydown", (event) => {
             });
         }
     } else if (event.code === "Space") {
-        stage.swap_ant();
+        update(() => stage.swap_ant());
     } else if (event.code === "KeyP") {
         toggle_pheromone();
     } else if (event.code === "KeyY") {
@@ -172,6 +175,8 @@ window.addEventListener("keydown", (event) => {
             pheromone.wait = !pheromone.wait;
             if (pheromone.wait && pheromone.direction === -1) pheromone.direction = 0;
         });
+    } else if (event.code === "KeyR" && !block_update) {
+        reset();
     }
 });
 
@@ -188,6 +193,7 @@ main_hud.set_component(0, 0, () => auto_play ? "hud_autoplay_pause" : "hud_autop
 main_hud.set_component(1, 0, "hud_wait", () => update(), "Wait one turn", false);
 main_hud.set_component(2, 0, "hud_pheromone", toggle_pheromone, "Toggles the Pheromone overlay", () => stage.hud === PHEROMONE_HUD);
 main_hud.set_component(3, 0, () => push_ants ? "hud_push_on" : "hud_push_off", () => push_ants = !push_ants, "Toggles pushing other ants", () => push_ants);
+main_hud.set_component(4, 0, "hud_reset", reset, "Reset the level");
 
 let pheromone_hud = new Hud(tilemap, 3, 3);
 pheromone_hud.active = false;
@@ -246,6 +252,23 @@ function toggle_pheromone() {
     stage.toggle_hud(PHEROMONE_HUD);
     pheromone_hud.active = stage.hud === PHEROMONE_HUD;
     auto_pheromone = auto_pheromone && pheromone_hud.active;
+}
+
+function reset() {
+    if (block_update) return;
+
+    manager.updates = [];
+    block_update = true;
+    manager.fade_out(() => {
+        window.stage = stage = stage.reset();
+        LEVELS.set(current_level, stage);
+        manager.current_draw_method = stage.draw.bind(stage);
+        manager.current_click_method = stage.on_click.bind(stage);
+        manager.fade_in(() => {
+            block_update = false;
+            console.log("FINISHED");
+        });
+    });
 }
 
 manager.huds.push(main_hud);

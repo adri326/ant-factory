@@ -24,6 +24,7 @@ set 6 0 cable blue (dl)
 fill 1..6 0 cable blue (rl)
 set 0 0 door blue (r)
 network 0 0
+warp 0 0 0-6 2 5
 
 set 2 4 belt 1 (l)
 set 3 4 belt 1 (r)
@@ -67,6 +68,10 @@ set 4 6 clock blue (d) 0 2
 set 4 7 cable blue (ul)
 set 3 7 cable blue (rl)
 network 3 7
+
+set 0 6 help "Cranes can also transport items to/from ants, allowing you to move items when belts aren't available." 1
+set 0 4 help "Cranes can only take items from ants that aren't moving: you can tell your ants to pause on a tile from the pheromone menu."
+set 0 1 help "You should automate the production of springs before moving on to the next levels!"
 
 player 0 6
 ant 7 6 pipe

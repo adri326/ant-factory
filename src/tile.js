@@ -686,7 +686,11 @@ export class Crane extends Connected {
             let dy = 0;
 
             for (let ant of stage.ants) {
-                if (ant.x === x + dx && ant.y === y + dy && ant.item === null && !ant.moving) {
+                if (
+                    ant.x - ant.moving * DIRECTIONS[ant.direction][0] === x + dx
+                    && ant.y - ant.moving * DIRECTIONS[ant.direction][1] === y + dy
+                    && ant.item === null
+                ) {
                     ant.item = this.item;
                     this.item = null;
                     return;
@@ -932,6 +936,42 @@ export class MachineCollector extends Collector {
     }
 }
 
+export class Help extends Tile {
+    constructor(message, active = false) {
+        super("help", PASSABLE_IGNORE);
+        this.message = message;
+        this.active = !!active;
+    }
+
+    draw(ctx, tilemap, vx, vy, tile_size, animation, last_tick) {
+        for (let texture of this.get_textures(animation, last_tick)) {
+            tilemap.draw(ctx, texture, vx, vy, tile_size, animation);
+        }
+
+        if (this.active) {
+            ctx.fillStyle = "#d0d0d0";
+            ctx.textAlign = "left";
+            ctx.textBaseline = "top";
+            ctx.font = "16px monospace";
+            let y = 8;
+            for (let line of this.message.split("\n")) {
+                ctx.fillText(line, 8, y);
+                y += 20;
+            }
+        }
+    }
+
+    update(stage, x, y) {
+        this.active = false;
+        let player = stage.current_ant();
+        if (!player) return;
+
+        if (player.x === x && player.y === y) {
+            this.active = true;
+        }
+    }
+}
+
 export function register_tile_textures(tilemap) {
     tilemap.add_texture("wall", {
         x: 0, y: 0,
@@ -943,6 +983,7 @@ export function register_tile_textures(tilemap) {
     tilemap.add_texture("edge", {x: 2, y: 2});
     tilemap.add_texture("void", {x: 2, y: 3});
     tilemap.add_texture("empty", {x: 2, y: 0});
+    tilemap.add_texture("help", {x: 3, y: 4});
 
     for (let dx = 0; dx < 3; dx++) {
         let color = CABLE_NAMES[dx];
@@ -1148,6 +1189,8 @@ TILES.set("wall_collector", (color, connections, item = null) => new WallCollect
 TILES.set("machine_collector", (color, connections, direction, item = null) => new MachineCollector(CABLE_MAP.get(color), connections, direction, item));
 
 TILES.set("machine", (color, connections, target_item) => new Machine(CABLE_MAP.get(color), connections, target_item));
+
+TILES.set("help", (message, active = false) => new Help(message, active));
 
 export default function tile(name, ...data) {
     if (TILES.has(name)) {

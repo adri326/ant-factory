@@ -18,6 +18,9 @@ set 3 1 fence (du)
 set 3 2 fence (du)
 set 3 3 fence (du)
 
+set 5 3 help "Welcome to Ant Factory! Use the arrow keys or WASD to move to the next question mark." 1
+set 6 2 help "Press [Space] to take the control of the other ant and press the button."
+set 1 2 help "Great, the door has opened! Now press [Space] again to take control of the other ant and move to the next room."
 
 ant 1 3
 player 5 3

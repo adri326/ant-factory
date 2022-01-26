@@ -219,6 +219,16 @@ export class Stage {
     }
 
     on_click(x, y, width, height, manager) {
+        const update = (beforeupdate = (() => {})) => {
+            manager.push_update(() => {
+                this.kill_ants();
+                beforeupdate();
+                this.update();
+
+                return () => this.cleanup();
+            });
+        };
+
         let tile_size = TILE_SIZE * Math.ceil(Math.pow(2, this.zoom));
 
         const get_vx = (x) => {
@@ -239,7 +249,7 @@ export class Stage {
             for (let n = 0; n < this.ants.length; n++) {
                 let ant = this.ants[n];
                 if (ant.x === fx && ant.y === fy) {
-                    this.player_index = n;
+                    update(() => this.player_index = n);
                     break;
                 }
             }
@@ -407,6 +417,10 @@ export class Stage {
         return null;
     }
 
+    reset() {
+        return Stage.from_desc(this.tilemap, this.description);
+    }
+
     static from_desc(tilemap, description) {
         let lines = description.split("\n");
         let [width, height] = lines.shift().split("x").map(x => +x);
@@ -414,6 +428,7 @@ export class Stage {
         if (!Number.isInteger(height)) throw new Error("Invalid height!");
 
         let res = new Stage(tilemap, width, height);
+        res.description = description;
 
         function parse_number(str) {
             let match = /^0b([01]+)$/.exec(str);
@@ -508,7 +523,7 @@ export class Stage {
         }
 
         for (let line of lines) {
-            let args = line.split(" ");
+            let args = line.split("\"").map((part, i) => i % 2 === 0 ? part.split(" ") : part.replace(/\\n/g, "\n")).flat().filter(Boolean);
             if (!args.length) continue;
 
             switch (args[0].toLowerCase()) {

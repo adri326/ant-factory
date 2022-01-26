@@ -52,7 +52,10 @@ set 3 7 button red (r)
 set 4 7 laser red (l)
 network 3 7
 
-warp 1 0 0-4 1 6
+warp 1 0 0-4 1 7
+
+set 1 7 help "Warning! These lasers will kill any ant in their way." 1
+set 5 7 help "Press [P] to open the pheromone menu: from it, you can lay down pheromones that the ants you don't control will follow."
 
 player 1 7
 ant 7 7
