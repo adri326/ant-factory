@@ -22,6 +22,6 @@ item 3 2 processor
 item 3 4 sensor
 item 1 4 spring
 
-set 2 3 help "Congratulations, you made it to the end of this demo!\nYou can go back and automate the last levels if you hadn't already."
+set 2 3 help "Congratulations, you made it to the end of this demo!\nYou can go back and automate the last levels if you hadn't already.\nMore levels and mechanics are to be coming in the future!"
 
 player 2 5

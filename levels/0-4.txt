@@ -63,7 +63,7 @@ set 2 6 help "These cranes are able to take items from one side and transport th
 set 7 7 help "This blue button powers the distributor: when powered, it adds new items onto the belt."
 
 set 3 1 help "The door ahead may be open, but the factory needs to be automated: use pheromones to keep on transporting pipes to the collector."
-set 1 7 help "With the pheromone menu, you can instruct ants to walk in a loop" 1
+set 1 7 help "Using pheromones, you can instruct ants to walk in a loop." 1
 
 ant 5 2
 player 1 7

@@ -55,7 +55,9 @@ network 3 7
 warp 1 0 0-4 1 7
 
 set 1 7 help "Warning! These lasers will kill any ant in their way." 1
-set 5 7 help "Press [P] to open the pheromone menu: from it, you can lay down pheromones that the ants you don't control will follow."
+set 7 1 help "Press [R] to restart the level if you are stuck."
+set 3 7 help "Press [R] to restart the level if you are stuck."
+set 5 7 help "Press [P] to open the pheromone menu: from it, you can lay down pheromones that the ants you don't control will follow.\nNote that taking the control of another ant will pass a turn."
 
 player 1 7
 ant 7 7

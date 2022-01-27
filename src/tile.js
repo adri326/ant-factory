@@ -936,6 +936,10 @@ export class MachineCollector extends Collector {
     }
 }
 
+export const HELP_FREQ = 1/500;
+export const HELP_AMP = 1/16;
+export const HELP_OFFSET = -5/16;
+
 export class Help extends Tile {
     constructor(message, active = false) {
         super("help", PASSABLE_IGNORE);
@@ -944,8 +948,9 @@ export class Help extends Tile {
     }
 
     draw(ctx, tilemap, vx, vy, tile_size, animation, last_tick) {
+        let vy2 = vy + Math.round(Math.sin(last_tick * HELP_FREQ) * tile_size * HELP_AMP) + HELP_OFFSET * tile_size;
         for (let texture of this.get_textures(animation, last_tick)) {
-            tilemap.draw(ctx, texture, vx, vy, tile_size, animation);
+            tilemap.draw(ctx, texture, vx, vy2, tile_size, animation);
         }
 
         if (this.active) {

@@ -71,7 +71,8 @@ network 3 7
 
 set 0 6 help "Cranes can also transport items to/from ants, allowing you to move items when belts aren't available." 1
 set 0 4 help "Cranes can only take items from ants that aren't moving: you can tell your ants to pause on a tile from the pheromone menu."
-set 0 1 help "You should automate the production of springs before moving on to the next levels!"
+set 0 1 help "You should automate the production of springs before moving on to the next levels!\nThe AUTO button [Q] in the pheromone menu can greatly simplify this process."
+set 4 3 help "If an ant is standing still on a belt, it will be pushed along."
 
 player 0 6
 ant 7 6 pipe
